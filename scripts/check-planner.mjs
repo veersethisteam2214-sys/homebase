@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {mkdir} from 'node:fs/promises';
+await mkdir('.sites-runtime',{recursive:true});
+await build({entryPoints:['lib/planner.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/planner-test.mjs'});
+const {initialState,tasksFor,materializeThrough,quoteFor,offset,dayKey}=await import('../.sites-runtime/planner-test.mjs');
+const s=initialState();
+assert.equal(s.assignments.length,0);assert.equal(s.goals.length,0);
+s.assignments=[1,2].map(i=>({id:'test-'+i,date:'2026-09-24',unit:'Test course',title:'Test assignment '+i,weight:'10%',format:'Essay',notes:'',status:'unconfirmed'}));
+s.projects=[{id:'test-project',title:'Test project',action:'Work on test project',active:true,days:[4]}];
+assert.equal(tasksFor(s,'2026-09-17').filter(t=>t.source==='Assignment prep').length,2);
+assert.equal(tasksFor(s,'2026-09-24').filter(t=>t.source==='Assignment due').length,2);
+const t=tasksFor(s,'2026-09-17')[0];s.tasks.push({...t,deleted:true});assert.ok(!tasksFor(s,'2026-09-17').some(x=>x.id===t.id));
+materializeThrough(s,'2026-09-17');const before=tasksFor(s,'2026-09-17').map(t=>t.id);s.projects=[];assert.deepEqual(tasksFor(s,'2026-09-17').map(t=>t.id),before);
+materializeThrough(s,'2026-09-19');assert.ok(s.plannedDates.includes('2026-09-18'));assert.ok(s.plannedDates.includes('2026-09-19'));
+assert.equal(new Set(Array.from({length:900},(_,i)=>quoteFor(offset('2026-01-01',i)))).size,900);
+assert.equal(dayKey(new Date('2026-09-17T14:00:00Z')),'2026-09-18');
+console.log('Passed: empty public defaults, prep dates, due dates, deletion, historical snapshots, daily rollover, 900 distinct phrases, Hobart date boundary.');

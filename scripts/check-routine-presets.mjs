@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+await build({entryPoints:['lib/routine-presets.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/presets-test.mjs'});
+const {ensureRoutinePresets,saveRoutinePreset,useRoutinePreset}=await import('../.sites-runtime/presets-test.mjs');
+const s={routine:[{id:'water',title:'Drink water'},{id:'read',title:'Read'}],checks:{'2026-09-16':['water'],'2026-09-17':['water']},unlocked:['2026-09-16','2026-09-17']};
+ensureRoutinePresets(s);assert.equal(s.routinePresets[0].name,'Everyday');
+s.routine.pop();assert.equal(s.routinePresets[0].steps.length,2);
+saveRoutinePreset(s,'weekend',' Weekend ');assert.equal(s.routinePresets[1].name,'Weekend');
+assert.throws(()=>saveRoutinePreset(s,'duplicate','weekend'));
+s.routine[0].title='A glass of water';assert.equal(s.routinePresets[1].steps[0].title,'Drink water');
+saveRoutinePreset(s,'weekend','Weekend');assert.equal(s.routinePresets[1].steps[0].title,'A glass of water');
+const restored=JSON.parse(JSON.stringify(s));useRoutinePreset(restored,'everyday','2026-09-17');
+assert.equal(restored.routine.length,2);assert.equal(restored.routine[0].title,'Drink water');
+assert.deepEqual(restored.checks['2026-09-17'],[]);assert.deepEqual(restored.checks['2026-09-16'],['water']);assert.deepEqual(restored.unlocked,['2026-09-16']);
+restored.routinePresets=[];ensureRoutinePresets(restored);assert.deepEqual(restored.routinePresets,[]);
+console.log('Passed: legacy routine preservation, independent presets, duplicate names, update, reload, switching and historical confirmations.');

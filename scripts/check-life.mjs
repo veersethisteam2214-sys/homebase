@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+await build({entryPoints:['lib/life.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/life-test.mjs'});
+const {parseYouTube,nextNudge,inActiveHours,upgradeLife,elapsed,resetStreak,defaultPhrases}=await import('../.sites-runtime/life-test.mjs');
+for(const url of ['https://youtu.be/dQw4w9WgXcQ?t=1','https://www.youtube.com/watch?v=dQw4w9WgXcQ','https://youtube.com/shorts/dQw4w9WgXcQ','https://youtube.com/live/dQw4w9WgXcQ'])assert.equal(parseYouTube(url).videoId,'dQw4w9WgXcQ');
+for(const url of ['javascript:alert(1)','https://youtube.com.evil.test/watch?v=dQw4w9WgXcQ','https://example.com/watch?v=dQw4w9WgXcQ','https://youtube.com/playlist?list=123','https://youtube.com/watch?v=../private'])assert.throws(()=>parseYouTube(url));
+assert.equal(nextNudge(30,90,0,0),30*60000);assert.equal(nextNudge(30,90,0,.9999),90*60000);
+assert.equal(inActiveHours(8,22,new Date('2026-09-17T23:00:00Z')),true);assert.equal(inActiveHours(8,22,new Date('2026-09-17T13:00:00Z')),false);assert.equal(inActiveHours(22,8,new Date('2026-09-17T13:00:00Z')),true);
+const routine=[{id:'custom',title:'A custom routine step'}],s={routine:structuredClone(routine),routinePresets:[{id:'everyday',steps:structuredClone(routine)}]};upgradeLife(s);upgradeLife(s);
+assert.deepEqual(s.routine,routine);assert.deepEqual(s.routinePresets[0].steps,routine);assert.equal(s.motivation.phoneEnabled,false);assert.deepEqual(s.motivation.phrases,defaultPhrases);
+s.motivation.phrases=[{id:'private',text:'An existing private phrase'}];upgradeLife(s);assert.equal(s.motivation.phrases[0].text,'An existing private phrase');
+assert.deepEqual(elapsed('2026-09-01T00:00:00Z',Date.parse('2026-09-03T04:05:00Z')),{days:2,hours:4,minutes:5,total:187500000});
+const streak={startedAt:'2026-09-01T00:00:00Z',past:[]};resetStreak(streak,'2026-09-03T00:00:00Z');assert.equal(streak.past.length,1);assert.equal(streak.startedAt,'2026-09-03T00:00:00Z');
+console.log('Passed: YouTube parsing and unsafe URLs, random timing bounds, Hobart quiet hours, custom routine preservation, private phrase preservation, streak elapsed time and reset history.');

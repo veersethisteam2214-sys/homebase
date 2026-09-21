@@ -1,0 +1,4 @@
+[functions.homebase-store]
+# Custom server-to-server authentication is enforced inside the handler.
+verify_jwt = false
+entrypoint = "./functions/homebase-store/index.js"
