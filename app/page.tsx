@@ -1,4 +1,4 @@
-import Dashboard from './dashboard';
+import Homebase from './homebase';
 import {requireChatGPTUser} from './chatgpt-auth';
 export const dynamic='force-dynamic';
-export default async function Page() { await requireChatGPTUser('/'); return <Dashboard/>; }
+export default async function Page() { await requireChatGPTUser('/'); return <Homebase/>; }

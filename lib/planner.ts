@@ -1,8 +1,12 @@
 export type Assignment={id:string;date:string;unit:string;title:string;weight:string;format:string;notes:string;status:string};
 export type ClassEntry={day:string;start:string;end:string;unit:string;kind:string;location:string;note:string};
-export type Task = {id:string; title:string; date:string; project?:string; done:boolean; deleted?:boolean; source?:string};
-export type Project = {id:string; title:string; action:string; days:number[]; active:boolean};
-export type State = {tasks:Task[]; projects:Project[]; goals:{id:string;title:string;progress:number}[]; routine:{id:string;title:string}[]; checks:Record<string,string[]>; unlocked:string[]; assignments:Assignment[]; classes?:ClassEntry[]; displayName?:string; history:{id:string;time:string;text:string}[]; reminders:{id:string;title:string;time:string;enabled:boolean}[]; notes:Record<string,string>; termEnd:string; plannedDates?:string[]; lastPlanDate?:string; routinePresets?:import("./routine-presets").RoutinePreset[]; activeRoutinePresetId?:string; videos?:import("./life").Video[]; streak?:import("./life").Streak; motivation?:import("./life").Motivation; listRevision?:number};
+export type Task = {id:string; title:string; date:string; project?:string; done:boolean; deleted?:boolean; source?:string; important?:boolean};
+export type ProjectNote = {id:string; text:string; at:string; pinned?:boolean};
+export type Project = {id:string; title:string; action:string; days:number[]; active:boolean; summary?:string; notes?:ProjectNote[]};
+export type AppSettings={accent:string;theme:'light'|'dark';quotePopup:boolean;volume:number};
+export const accents=['#27514A','#38457A','#9C4A26','#7A3618','#1A1C1B'];
+export function defaultSettings():AppSettings{return {accent:'#27514A',theme:'light',quotePopup:true,volume:0.7};}
+export type State = {tasks:Task[]; projects:Project[]; goals:{id:string;title:string;progress:number}[]; routine:{id:string;title:string}[]; checks:Record<string,string[]>; unlocked:string[]; assignments:Assignment[]; classes?:ClassEntry[]; displayName?:string; history:{id:string;time:string;text:string}[]; reminders:{id:string;title:string;time:string;enabled:boolean}[]; notes:Record<string,string>; termEnd:string; plannedDates?:string[]; lastPlanDate?:string; routinePresets?:import("./routine-presets").RoutinePreset[]; activeRoutinePresetId?:string; videos?:import("./life").Video[]; streak?:import("./life").Streak; motivation?:import("./life").Motivation; listRevision?:number; gym?:import("./gym").Gym; clock?:import("./clock").Clock; quoteSeen?:string[]; settings?:AppSettings};
 export const weekdays=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 export function dayKey(d=new Date()) {return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Hobart',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
 export function offset(date:string,days:number){const d=new Date(date+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}

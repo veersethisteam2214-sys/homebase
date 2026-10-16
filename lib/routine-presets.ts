@@ -21,7 +21,7 @@ export function saveRoutinePreset(state:State,id:string,name:string){
   state.activeRoutinePresetId=id;
 }
 
-export function useRoutinePreset(state:State,id:string,today:string){
+export function applyRoutinePreset(state:State,id:string,today:string){
   const preset=ensureRoutinePresets(state).find(p=>p.id===id);
   if(!preset)throw Error('That routine preset is unavailable.');
   state.routine=structuredClone(preset.steps);
