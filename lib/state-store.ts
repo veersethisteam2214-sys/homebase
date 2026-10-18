@@ -2,7 +2,7 @@ import type {State} from './planner';
 
 export type StoredState={state:State;revision:number};
 export interface StateStore {
- kind:'local'|'supabase';
+ kind:'local'|'supabase'|'postgres';
  read(owner:string):Promise<StoredState|null>;
  create(owner:string,state:State):Promise<void>;
  write(owner:string,state:State,revision:number):Promise<boolean>;

@@ -21,9 +21,25 @@ await handle(req({action:'create',owner:'primary',state:{tasks:['do not overwrit
 assert.deepEqual(row.payload,{tasks:[]});
 const writes=await Promise.all([1,2].map(n=>handle(req({action:'write',owner:'primary',state:{value:n},revision:0}),cfg,send).then(r=>r.json())));
 assert.equal(writes.filter(r=>r.written).length,1);assert.equal(row.revision,1);
-await build({entryPoints:['lib/owner.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/owner-test.mjs',plugins:[{name:'env',setup(b){b.onResolve({filter:/^cloudflare:workers$/},()=>({path:'env',namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export const env=globalThis.__ownerEnv;'}));}}]});
-globalThis.__ownerEnv={SUPABASE_URL:cfg.url,HOMEBASE_OWNER_EMAIL:'owner@example.test'};
-const {owner}=await import('../.sites-runtime/owner-test.mjs');
+// owner() reads its environment through lib/runtime-env.ts, which falls back to
+// process.env wherever cloudflare:workers cannot be imported. Each bundle keeps its own
+// cached environment, so the two hosting modes are exercised as separate modules.
 const identity=email=>new Request('https://homebase.example.test/api/state',{headers:{'oai-authenticated-user-id':'verified-id','oai-authenticated-user-email':email}});
-assert.equal(owner(identity('owner@example.test')),'primary');assert.equal(owner(identity('another@example.test')),null);assert.equal(owner(new Request('https://homebase.example.test/api/state')),null);
-console.log('Passed: bridge authentication, invalid-owner rejection, preserved existing data, concurrent update conflict, hosted owner allowlist.');
+const anonymous=()=>new Request('https://homebase.example.test/api/state');
+
+await build({entryPoints:['lib/owner.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/owner-sites.mjs'});
+process.env.SUPABASE_URL=cfg.url;process.env.HOMEBASE_OWNER_EMAIL='owner@example.test';
+const sites=await import('../.sites-runtime/owner-sites.mjs');
+assert.equal(await sites.owner(identity('owner@example.test')),'primary');
+assert.equal(await sites.owner(identity('another@example.test')),null);
+assert.equal(await sites.owner(anonymous()),null);
+
+// A single-user host fronts the app with its own access control, so every request that
+// arrives belongs to the owner — including one carrying no platform identity at all.
+await build({entryPoints:['lib/owner.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/owner-single.mjs'});
+process.env.HOMEBASE_SINGLE_USER='1';
+const single=await import('../.sites-runtime/owner-single.mjs');
+assert.equal(await single.owner(anonymous()),'primary');
+assert.equal(await single.owner(identity('anyone@example.test')),'primary');
+
+console.log('Passed: bridge authentication, invalid-owner rejection, preserved existing data, concurrent update conflict, hosted owner allowlist, single-user host.');

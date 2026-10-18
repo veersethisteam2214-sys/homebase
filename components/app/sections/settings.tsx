@@ -118,13 +118,17 @@ export default function SettingsSection({state,busy,storage,change,go,notify}:Se
 
     <Card eyebrow="Storage">
      <div className="row" style={{gap:10,marginBottom:10}}>
-      {storage==='supabase'?<Cloud size={18} style={{color:'var(--ink-mute)'}}/>:<HardDrive size={18} style={{color:'var(--ink-mute)'}}/>}
-      <strong style={{fontWeight:500}}>{storage==='supabase'?'Supabase Postgres':'Local database'}</strong>
+      {storage==='local'?<HardDrive size={18} style={{color:'var(--ink-mute)'}}/>:<Cloud size={18} style={{color:'var(--ink-mute)'}}/>}
+      <strong style={{fontWeight:500}}>
+       {storage==='postgres'?'Hosted Postgres':storage==='supabase'?'Supabase Postgres':'Local database'}
+      </strong>
      </div>
      <p className="tiny" style={{lineHeight:1.6}}>
-      {storage==='supabase'
-       ? 'Saved through the authenticated server bridge. Only you can read it.'
-       : 'Saved to the local development database on this machine. Keep the state folder to retain your data.'}
+      {storage==='postgres'
+       ? 'Saved to the hosted database. Access to this deployment is controlled by the host.'
+       : storage==='supabase'
+        ? 'Saved through the authenticated server bridge. Only you can read it.'
+        : 'Saved to the local development database on this machine. Keep the state folder to retain your data.'}
      </p>
     </Card>
 

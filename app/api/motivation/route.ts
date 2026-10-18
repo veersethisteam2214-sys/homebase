@@ -3,11 +3,11 @@ import {owner as getOwner} from '../../../lib/owner';
 import type {State} from '../../../lib/planner';
 import {inActiveHours,nextNudge,upgradeLife} from '../../../lib/life';
 export async function POST(request:Request){
- const owner=getOwner(request);if(!owner)return Response.json({error:'Sign in first.'},{status:401});
+ const owner=await getOwner(request);if(!owner)return Response.json({error:'Sign in first.'},{status:401});
  const origin=request.headers.get('origin');if(origin&&origin!==new URL(request.url).origin)return Response.json({error:'Invalid origin.'},{status:403});
  try{
   const {mode}=await request.json() as {mode:string};if(!['auto','phone-test'].includes(mode))return Response.json({error:'Unknown notification request.'},{status:400});
-  const store=getStateStore(request),row=await store.read(owner);
+  const store=await getStateStore(request),row=await store.read(owner);
   if(!row)return Response.json({error:'Open your planner first.'},{status:400});
   const state=upgradeLife(row.state as State),config=state.motivation!,now=Date.now();
   if(mode==='auto'&&(!config.enabled||!config.phrases.length||config.nextAt>now||!inActiveHours(config.startHour,config.endHour)))return Response.json({state,revision:row.revision,skipped:true});

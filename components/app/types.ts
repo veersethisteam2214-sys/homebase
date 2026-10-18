@@ -7,7 +7,7 @@ export type SectionProps={
  state:State;
  today:string;
  busy:boolean;
- storage:'local'|'supabase';
+ storage:'local'|'supabase'|'postgres';
  /** Clones the state, applies the change, records it in history and saves. An empty label skips history. */
  change:(label:string,mutate:(state:State)=>void)=>void;
  /** Takes over a state and revision that the server itself wrote, so the next save does not conflict. */

@@ -1,7 +1,7 @@
 import {owner} from '../../../lib/owner';
 import {parseYouTube} from '../../../lib/life';
 export async function POST(request:Request){
- if(!owner(request))return Response.json({error:'Sign in first.'},{status:401});
+ if(!await owner(request))return Response.json({error:'Sign in first.'},{status:401});
  try{
   const body=await request.json() as {url?:unknown};
   if(typeof body.url!=='string'||body.url.length>2000)return Response.json({error:'Enter a valid video link.'},{status:400});

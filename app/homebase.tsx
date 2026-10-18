@@ -28,7 +28,7 @@ export default function Homebase(){
  const [busy,setBusy]=useState(false);
  const [today,setToday]=useState(()=>dayKey());
  const [view,setView]=useState<View>('dashboard');
- const [storage,setStorage]=useState<'local'|'supabase'>('local');
+ const [storage,setStorage]=useState<'local'|'supabase'|'postgres'>('local');
  const [toast,setToast]=useState<{message:string;tone:'info'|'error'}|null>(null);
  const [quoteDone,setQuoteDone]=useState(false);
  const [nudge,setNudge]=useState<string|null>(null);
@@ -80,7 +80,7 @@ export default function Homebase(){
   (async()=>{
    try{
     const response=await fetch('/api/state');
-    const data=await response.json() as {state?:State;revision?:number;storage?:'local'|'supabase';error?:string};
+    const data=await response.json() as {state?:State;revision?:number;storage?:'local'|'supabase'|'postgres';error?:string};
     if(!response.ok||!data.state)throw Error(data.error||'Your Homebase could not be loaded.');
     if(!alive)return;
     revision.current=data.revision??0;
