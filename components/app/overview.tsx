@@ -1,5 +1,5 @@
 'use client';
-import {ArrowRight} from 'lucide-react';
+import {ArrowRight,Orbit} from 'lucide-react';
 import {quoteFor,tasksFor,type State} from '../../lib/planner';
 import {elapsed} from '../../lib/life';
 import {minutesUntil} from '../../lib/clock';
@@ -79,7 +79,7 @@ function linesFor(id:SectionId,state:State,today:string):Line[]{
  }
 }
 
-export default function Overview({state,today,go}:{state:State;today:string;go:(view:View)=>void}){
+export default function Overview({state,today,go,onOrbitView}:{state:State;today:string;go:(view:View)=>void;onOrbitView?:()=>void}){
  const tasks=tasksFor(state,today);
  const open=tasks.filter(t=>!t.done).length;
  const steps=state.routine.length,checked=state.checks[today]?.length??0;
@@ -95,7 +95,10 @@ export default function Overview({state,today,go}:{state:State;today:string;go:(
     <h1>{greeting()}{state.displayName?`, ${state.displayName.split(/\s+/)[0]}`:''}</h1>
     <p>{pretty(today)}</p>
    </div>
-   <p className="muted" style={{fontFamily:'var(--serif)',fontStyle:'italic',fontSize:17,maxWidth:420,textAlign:'right'}}>{quoteFor(today)}</p>
+   <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:10,maxWidth:440}}>
+    {onOrbitView&&<button type="button" className="orbital-switch" onClick={onOrbitView}><Orbit size={15}/>Orbit view</button>}
+    <p className="muted" style={{fontFamily:'var(--serif)',fontStyle:'italic',fontSize:17,textAlign:'right'}}>{quoteFor(today)}</p>
+   </div>
   </div>
 
   <div className="stats">

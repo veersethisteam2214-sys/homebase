@@ -5,6 +5,7 @@ import {dayKey,defaultSettings,materializeThrough,type State} from '../lib/plann
 import {inActiveHours} from '../lib/life';
 import {primeAudio} from '../lib/ringtones';
 import AlarmEngine from '../components/app/alarm-engine';
+import Orbital from '../components/app/orbital';
 import Overview from '../components/app/overview';
 import QuoteGate from '../components/app/quote-gate';
 import TopNav from '../components/app/top-nav';
@@ -32,6 +33,7 @@ export default function Homebase(){
  const [toast,setToast]=useState<{message:string;tone:'info'|'error'}|null>(null);
  const [quoteDone,setQuoteDone]=useState(false);
  const [nudge,setNudge]=useState<string|null>(null);
+ const [listView,setListView]=useState(false);
 
  const stateRef=useRef<State|null>(null);
  const revision=useRef(0);
@@ -181,7 +183,9 @@ export default function Homebase(){
    case 'streak':return <StreakSection {...props}/>;
    case 'history':return <HistorySection {...props}/>;
    case 'settings':return <SettingsSection {...props}/>;
-   default:return <Overview state={state} today={today} go={setView}/>;
+   default:return listView
+    ? <Overview state={state} today={today} go={setView} onOrbitView={()=>setListView(false)}/>
+    : <Orbital state={state} today={today} go={setView} onListView={()=>setListView(true)}/>;
   }
  })();
 
