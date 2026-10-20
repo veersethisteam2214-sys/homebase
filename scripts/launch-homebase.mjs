@@ -12,6 +12,6 @@ if(!await ready()){
  child.unref();
  let available=false;
  for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,1000));if(await ready()){available=true;break;}}
- if(!available){console.error('Homebase could not start. See dashboard/.sites-runtime/homebase.log.');process.exit(1);}
+ if(!available){console.error('Homebase could not start. See .sites-runtime/homebase.log in this folder.');process.exit(1);}
 }
 spawn('explorer.exe',[url],{detached:true,windowsHide:true,stdio:'ignore'}).unref();
