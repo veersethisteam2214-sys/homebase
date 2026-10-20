@@ -47,17 +47,21 @@ export default function SettingsSection({state,busy,storage,change,go,notify}:Se
 
     <Card title="Appearance">
      <div className="field">
-      <span>Accent</span>
+      <span>Highlight colour</span>
       <div className="row" style={{flexWrap:'wrap',gap:10}}>
-       {accents.map(colour=><button key={colour} type="button" disabled={busy}
-        aria-label={`Use the accent ${colour}`} aria-pressed={settings.accent===colour}
-        onClick={()=>edit('Changed the accent colour',{accent:colour})}
-        style={{
-         width:40,height:40,borderRadius:12,cursor:'pointer',background:colour,
-         border:settings.accent===colour?'3px solid var(--ink)':'1px solid var(--line-strong)',
-        }}>
-        {settings.accent===colour&&<Check size={16} style={{color:'#fff'}}/>}
-       </button>)}
+       {accents.map(colour=>{
+        const active=settings.accent.toLowerCase()===colour.hex.toLowerCase();
+        return <button key={colour.hex} type="button" disabled={busy} title={colour.name}
+         aria-label={`Use the ${colour.name} highlight`} aria-pressed={active}
+         onClick={()=>edit(`Changed the highlight colour to ${colour.name.toLowerCase()}`,{accent:colour.hex})}
+         style={{
+          width:40,height:40,borderRadius:12,cursor:'pointer',background:colour.hex,
+          display:'inline-flex',alignItems:'center',justifyContent:'center',
+          border:active?'3px solid var(--ink)':'1px solid var(--line-strong)',
+         }}>
+         {active&&<Check size={16} style={{color:'#fff'}}/>}
+        </button>;
+       })}
       </div>
       <p className="tiny">Every tint, button and progress bar follows this colour.</p>
      </div>

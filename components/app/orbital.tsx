@@ -112,9 +112,10 @@ type Props={
  busy:boolean;
  go:(view:View)=>void;
  onListView:()=>void;
+ onAccent:(hex:string)=>void;
 };
 
-export default function Orbital({state,today,busy,go,onListView}:Props){
+export default function Orbital({state,today,busy,go,onListView,onAccent}:Props){
  const now=useNow(1000);
  // Pointing at a node previews it in the core; clicking opens it. There is no in-between.
  const [peeked,setPeeked]=useState<SectionId|null>(null);
@@ -168,7 +169,7 @@ export default function Orbital({state,today,busy,go,onListView}:Props){
      <Flame size={14}/><span>{running?streakDays:'—'}</span>
     </button>
     <span className="orbital-save">{busy?'Saving':'Saved'}</span>
-    <ProfileMenu name={state.displayName??''} go={go} onDark/>
+    <ProfileMenu name={state.displayName??''} accent={state.settings?.accent??'#27514A'} onAccent={onAccent} go={go} onDark/>
    </div>
   </header>
 

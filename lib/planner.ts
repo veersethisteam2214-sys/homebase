@@ -4,7 +4,27 @@ export type Task = {id:string; title:string; date:string; project?:string; done:
 export type ProjectNote = {id:string; text:string; at:string; pinned?:boolean};
 export type Project = {id:string; title:string; action:string; days:number[]; active:boolean; summary?:string; notes?:ProjectNote[]};
 export type AppSettings={accent:string;theme:'light'|'dark';quotePopup:boolean;volume:number};
-export const accents=['#27514A','#38457A','#9C4A26','#7A3618','#1A1C1B'];
+/**
+ * The highlight colours offered in the picker. All sit in the same darkness band so
+ * white text stays readable on them and they hold up against the dark field. Stored
+ * accents are validated by shape rather than against this list, so curating it never
+ * invalidates a planner that was saved with an older colour.
+ */
+export const accents=[
+ {hex:'#27514A',name:'Forest'},
+ {hex:'#1F6F5E',name:'Jade'},
+ {hex:'#176B82',name:'Teal'},
+ {hex:'#2B5FA8',name:'Ocean'},
+ {hex:'#3F47A6',name:'Indigo'},
+ {hex:'#6B46A8',name:'Violet'},
+ {hex:'#8E3D9E',name:'Orchid'},
+ {hex:'#A8367A',name:'Magenta'},
+ {hex:'#A83752',name:'Rose'},
+ {hex:'#A84430',name:'Rust'},
+ {hex:'#8A5A18',name:'Amber'},
+ {hex:'#4F7A24',name:'Olive'},
+];
+export const accentPattern=/^#[0-9a-f]{6}$/i;
 // The orbit is a dark field and the section pages share it, so there is one look.
 export function defaultSettings():AppSettings{return {accent:'#27514A',theme:'dark',quotePopup:true,volume:0.7};}
 export type State = {tasks:Task[]; projects:Project[]; goals:{id:string;title:string;progress:number}[]; routine:{id:string;title:string}[]; checks:Record<string,string[]>; unlocked:string[]; assignments:Assignment[]; classes?:ClassEntry[]; displayName?:string; history:{id:string;time:string;text:string}[]; reminders:{id:string;title:string;time:string;enabled:boolean}[]; notes:Record<string,string>; termEnd:string; plannedDates?:string[]; lastPlanDate?:string; routinePresets?:import("./routine-presets").RoutinePreset[]; activeRoutinePresetId?:string; videos?:import("./life").Video[]; streak?:import("./life").Streak; motivation?:import("./life").Motivation; listRevision?:number; gym?:import("./gym").Gym; clock?:import("./clock").Clock; quoteSeen?:string[]; settings?:AppSettings};

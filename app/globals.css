@@ -601,3 +601,22 @@ input[type=range]{accent-color:var(--accent)}
 .orbital-streak:hover{background:rgba(255,255,255,.1);border-color:rgba(240,168,120,.55)}
 .orbital-streak.is-cold{color:var(--ink-2)}
 .orbital-streak.is-cold:hover{color:var(--ink-1);border-color:rgba(255,255,255,.3)}
+
+/* ---------- highlight colour wheel ---------- */
+.menu-swatch{width:14px;height:14px;border-radius:50%;margin-left:auto;border:1px solid rgba(255,255,255,.3);flex:none}
+.swatch-panel{padding:4px 6px 8px;border-top:1px solid var(--line);margin-top:6px}
+.swatch-wheel{position:relative;width:188px;height:188px;margin:4px auto 0}
+.swatch{
+ position:absolute;width:30px;height:30px;border-radius:50%;padding:0;cursor:pointer;
+ transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.25);
+ display:flex;align-items:center;justify-content:center;color:#fff;
+ transition:transform .16s cubic-bezier(.2,.8,.3,1),box-shadow .16s;
+}
+.swatch:hover{transform:translate(-50%,-50%) scale(1.2);box-shadow:0 0 14px rgba(255,255,255,.22)}
+.swatch.is-active{border:2px solid #fff;box-shadow:0 0 0 3px rgba(255,255,255,.16)}
+.swatch-hub{
+ position:absolute;left:50%;top:50%;width:52px;height:52px;border-radius:50%;
+ transform:translate(-50%,-50%);background:var(--accent);
+ border:1px solid rgba(255,255,255,.22);box-shadow:0 0 22px color-mix(in srgb,var(--accent) 55%,transparent);
+}
+@media (prefers-reduced-motion:reduce){.swatch{transition:none}}

@@ -171,6 +171,9 @@ export default function Homebase(){
 
  const quoteOpen=Boolean(settings.quotePopup)&&!quoteDone&&!(state.quoteSeen??[]).includes(today);
  const props:SectionProps={state,today,busy,storage,change,adopt,go:setView,notify};
+ const setAccent=(hex:string)=>change('Changed the highlight colour',s=>{
+  s.settings={...defaultSettings(),...s.settings,accent:hex};
+ });
 
  const body=(()=>{
   switch(view){
@@ -188,13 +191,13 @@ export default function Homebase(){
    case 'settings':return <SettingsSection {...props}/>;
    default:return listView
     ? <Overview state={state} today={today} go={setView} onOrbitView={()=>setListView(false)}/>
-    : <Orbital state={state} today={today} busy={busy} go={setView} onListView={()=>setListView(true)}/>;
+    : <Orbital state={state} today={today} busy={busy} go={setView} onListView={()=>setListView(true)} onAccent={setAccent}/>;
   }
  })();
 
  // The dashboard is the orbit, full bleed: it carries its own profile menu and needs no bar.
  return <>
-  {(view!=='dashboard'||listView)&&<TopNav go={setView} name={state.displayName??''} busy={busy}/>}
+  {(view!=='dashboard'||listView)&&<TopNav go={setView} name={state.displayName??''} busy={busy} accent={settings.accent} onAccent={setAccent}/>}
 
   {view==='dashboard'&&!listView?body:<main className="page">{body}</main>}
 
