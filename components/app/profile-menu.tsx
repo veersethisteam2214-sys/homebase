@@ -1,9 +1,9 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {Flame,History,Moon,Settings2,Sun} from 'lucide-react';
+import {Flame,History,Settings2} from 'lucide-react';
 import type {View} from './types';
 
-type Props={name:string;theme:'light'|'dark';onToggleTheme:()=>void;go:(view:View)=>void;onDark?:boolean};
+type Props={name:string;go:(view:View)=>void;onDark?:boolean};
 
 function initials(name:string){
  const parts=name.trim().split(/\s+/).filter(Boolean);
@@ -12,7 +12,7 @@ function initials(name:string){
 }
 
 /** The only chrome that survives on the orbital screen: settings, streak, history, theme. */
-export default function ProfileMenu({name,theme,onToggleTheme,go,onDark}:Props){
+export default function ProfileMenu({name,go,onDark}:Props){
  const [open,setOpen]=useState(false);
  const wrap=useRef<HTMLDivElement>(null);
 
@@ -40,9 +40,6 @@ export default function ProfileMenu({name,theme,onToggleTheme,go,onDark}:Props){
    <button type="button" role="menuitem" className="menu-item" onClick={()=>pick('settings')}><Settings2 size={17}/>Settings</button>
    <button type="button" role="menuitem" className="menu-item" onClick={()=>pick('streak')}><Flame size={17}/>Streak</button>
    <button type="button" role="menuitem" className="menu-item" onClick={()=>pick('history')}><History size={17}/>History</button>
-   <button type="button" role="menuitem" className="menu-item" onClick={()=>{setOpen(false);onToggleTheme();}}>
-    {theme==='dark'?<Sun size={17}/>:<Moon size={17}/>}{theme==='dark'?'Light theme':'Dark theme'}
-   </button>
   </div>}
  </div>;
 }

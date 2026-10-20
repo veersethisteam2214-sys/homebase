@@ -1,6 +1,6 @@
 'use client';
-import {useEffect,useMemo,useState} from 'react';
-import {ArrowRight,LayoutGrid} from 'lucide-react';
+import {useMemo,useState} from 'react';
+import {LayoutGrid} from 'lucide-react';
 import {tasksFor,type State} from '../../lib/planner';
 import {elapsed} from '../../lib/life';
 import {minutesUntil} from '../../lib/clock';
@@ -99,15 +99,14 @@ type Props={
  state:State;
  today:string;
  busy:boolean;
- theme:'light'|'dark';
  go:(view:View)=>void;
  onListView:()=>void;
- onToggleTheme:()=>void;
 };
 
-export default function Orbital({state,today,busy,theme,go,onListView,onToggleTheme}:Props){
+export default function Orbital({state,today,busy,go,onListView}:Props){
  const now=useNow(1000);
- const [picked,setPicked]=useState<SectionId|null>(null);
+ // Pointing at a node previews it in the core; clicking opens it. There is no in-between.
+ const [peeked,setPeeked]=useState<SectionId|null>(null);
 
  const orbs=useMemo<Orb[]>(()=>sections.filter(s=>s.onDashboard).map(section=>({
   id:section.id,
@@ -115,12 +114,6 @@ export default function Orbital({state,today,busy,theme,go,onListView,onToggleTh
   ...orbFor(section.id,state,today),
  })),[state,today]);
 
- useEffect(()=>{
-  if(!picked)return;
-  const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setPicked(null);};
-  document.addEventListener('keydown',onKey);
-  return()=>document.removeEventListener('keydown',onKey);
- },[picked]);
 
  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Australia/Hobart',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(now));
  const hour=Number(parts.find(p=>p.type==='hour')?.value??'0');
@@ -133,8 +126,8 @@ export default function Orbital({state,today,busy,theme,go,onListView,onToggleTh
  const dayTotal=tasks.length+steps;
  const dayCharge=ratio(dayDone,dayTotal);
 
- const selected=picked?orbs.find(o=>o.id===picked)??null:null;
- const selectedMeta=picked?sections.find(s=>s.id===picked)??null:null;
+ const selected=peeked?orbs.find(o=>o.id===peeked)??null:null;
+ const selectedMeta=peeked?sections.find(s=>s.id===peeked)??null:null;
  const circumference=2*Math.PI*46;
 
  return <div className="orbital-screen">
@@ -148,7 +141,7 @@ export default function Orbital({state,today,busy,theme,go,onListView,onToggleTh
    </div>
    <div className="orbital-bar-right">
     <span className="orbital-save">{busy?'Saving':'Saved'}</span>
-    <ProfileMenu name={state.displayName??''} theme={theme} onToggleTheme={onToggleTheme} go={go} onDark/>
+    <ProfileMenu name={state.displayName??''} go={go} onDark/>
    </div>
   </header>
 
@@ -159,22 +152,24 @@ export default function Orbital({state,today,busy,theme,go,onListView,onToggleTh
    <div className="orbital-track" aria-hidden="true"/>
    <div className="orbital-sweep" aria-hidden="true"/>
 
-   <div className={picked?'orbital-ring is-paused':'orbital-ring'}>
+   <div className={peeked?'orbital-ring is-paused':'orbital-ring'}>
     {orbs.map((orb,index)=>{
      const angle=(index/orbs.length)*Math.PI*2-Math.PI/2;
      const left=50+36*Math.cos(angle);
      const top=50+36*Math.sin(angle);
      const Icon=sections.find(s=>s.id===orb.id)?.icon;
-     const active=picked===orb.id;
+     const active=peeked===orb.id;
      return <div key={orb.id} className="orbital-slot" style={{left:`${left}%`,top:`${top}%`}}>
-      <div className={picked?'orbital-upright is-paused':'orbital-upright'}>
+      <div className={peeked?'orbital-upright is-paused':'orbital-upright'}>
        <button
         type="button"
         className={`orbital-node${active?' is-active':''}${orb.urgent?' is-urgent':''}`}
-        aria-pressed={active}
-        aria-label={`${orb.label}: ${orb.value}, ${orb.detail}`}
-        onClick={()=>setPicked(active?null:orb.id)}
-        onDoubleClick={()=>go(orb.id)}
+        aria-label={`Open ${orb.label}: ${orb.value}, ${orb.detail}`}
+        onClick={()=>go(orb.id)}
+        onMouseEnter={()=>setPeeked(orb.id)}
+        onMouseLeave={()=>setPeeked(current=>current===orb.id?null:current)}
+        onFocus={()=>setPeeked(orb.id)}
+        onBlur={()=>setPeeked(current=>current===orb.id?null:current)}
        >
         <svg className="orbital-arc" viewBox="0 0 100 100" aria-hidden="true">
          <circle className="orbital-arc-bed" cx="50" cy="50" r="46"/>
@@ -203,9 +198,6 @@ export default function Orbital({state,today,busy,theme,go,onListView,onToggleTh
        <span className="orbital-core-kicker">{selectedMeta.label}</span>
        <strong className="orbital-core-value">{selected.value}</strong>
        <span className="orbital-core-detail">{selected.detail}</span>
-       <button type="button" className="orbital-open" onClick={()=>go(selected.id)}>
-        Open <ArrowRight size={14}/>
-       </button>
       </div>
      : <div className="orbital-core-body">
        <span className="orbital-core-kicker">Hobart</span>
@@ -216,7 +208,7 @@ export default function Orbital({state,today,busy,theme,go,onListView,onToggleTh
   </div>
 
   <footer className="orbital-foot">
-   <p className="orbital-hint">{picked?'Escape to clear · double click a node to open it':'Select a node · double click to open'}</p>
+   <p className="orbital-hint">Click a node to open it</p>
    <button type="button" className="orbital-switch" onClick={onListView}>
     <LayoutGrid size={14}/>List view
    </button>

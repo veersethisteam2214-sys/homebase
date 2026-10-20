@@ -1,6 +1,6 @@
 'use client';
 import {useState} from 'react';
-import {Bell,Check,Cloud,HardDrive,Moon,Sun,Volume2} from 'lucide-react';
+import {Bell,Check,Cloud,HardDrive,Volume2} from 'lucide-react';
 import {accents,defaultSettings} from '../../../lib/planner';
 import {ringtoneNames,ringtoneIds} from '../../../lib/clock';
 import {playRingtone,primeAudio} from '../../../lib/ringtones';
@@ -47,16 +47,6 @@ export default function SettingsSection({state,busy,storage,change,go,notify}:Se
 
     <Card title="Appearance">
      <div className="field">
-      <span>Theme</span>
-      <div className="row">
-       <button type="button" className={settings.theme==='light'?'btn btn-soft':'btn'} disabled={busy}
-        onClick={()=>edit('Switched to the light theme',{theme:'light'})}><Sun size={16}/>Light</button>
-       <button type="button" className={settings.theme==='dark'?'btn btn-soft':'btn'} disabled={busy}
-        onClick={()=>edit('Switched to the dark theme',{theme:'dark'})}><Moon size={16}/>Dark</button>
-      </div>
-     </div>
-
-     <div className="field" style={{marginTop:20}}>
       <span>Accent</span>
       <div className="row" style={{flexWrap:'wrap',gap:10}}>
        {accents.map(colour=><button key={colour} type="button" disabled={busy}
