@@ -1,6 +1,6 @@
 'use client';
 import {useMemo,useState} from 'react';
-import {Check,LayoutGrid} from 'lucide-react';
+import {Check,Flame,LayoutGrid} from 'lucide-react';
 import ChatPanel from './chat-panel';
 import {tasksFor,type State} from '../../lib/planner';
 import {elapsed} from '../../lib/life';
@@ -130,6 +130,8 @@ export default function Orbital({state,today,busy,go,onListView}:Props){
  const clock=`${parts.find(p=>p.type==='hour')?.value}:${parts.find(p=>p.type==='minute')?.value}`;
  const date=new Date(today+'T12:00:00Z').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'});
 
+ const running=Boolean(state.streak?.startedAt);
+ const streakDays=elapsed(state.streak?.startedAt??null,now).days;
  const tasks=tasksFor(state,today);
  const critical=tasks.filter(t=>t.important).slice(0,3);
  const steps=state.routine.length,checked=state.checks[today]?.length??0;
@@ -157,10 +159,14 @@ export default function Orbital({state,today,busy,go,onListView}:Props){
          <span className="orbital-critical-dot" aria-hidden="true"/>{task.title}
         </li>)}
        </ul>
-      : <p className="orbital-critical-empty">Star up to three tasks in Today to pin them here</p>}
+      : <p className="orbital-critical-empty">Star up to three tasks in your to-do list to pin them here</p>}
     </div>
    </div>
    <div className="orbital-bar-right">
+    <button type="button" className={running?'orbital-streak':'orbital-streak is-cold'} onClick={()=>go('streak')}
+     aria-label={running?`Streak: ${streakDays} days. Open streak`:'No streak running. Open streak'}>
+     <Flame size={14}/><span>{running?streakDays:'—'}</span>
+    </button>
     <span className="orbital-save">{busy?'Saving':'Saved'}</span>
     <ProfileMenu name={state.displayName??''} go={go} onDark/>
    </div>

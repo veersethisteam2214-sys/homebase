@@ -64,13 +64,14 @@ export default function TodaySection({state,today,busy,change,go}:SectionProps){
  };
 
  return <div className="stack">
-  <PageHead title="Today" sub={`${tasks.filter(t=>!t.done).length} open · ${tasks.filter(t=>t.done).length} done`} back={()=>go('dashboard')}/>
+  <PageHead title="To-do list" sub={`${tasks.filter(t=>!t.done).length} open · ${tasks.filter(t=>t.done).length} done`} back={()=>go('dashboard')}/>
 
   <div className="split">
    <div className="main">
     <Card tone="lift" title="Critical" action={<span className="tiny">Up to {MAX_CRITICAL}, starred from your list</span>}>
      {critical.length===0
       ? <Empty>Star up to three things below. They show on the dashboard under your name.</Empty>
+
       : <div className="list">{critical.map(t=><TaskRow key={t.id} task={t} today={today} busy={busy} change={change} canStar/>)}</div>}
     </Card>
 

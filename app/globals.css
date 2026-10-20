@@ -590,3 +590,14 @@ input[type=range]{accent-color:var(--accent)}
 @media (prefers-reduced-motion:reduce){
  .orbital-node.is-done::after{animation:none;opacity:0}
 }
+
+/* ---------- streak indicator ---------- */
+.orbital-streak{
+ display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;cursor:pointer;
+ background:rgba(255,255,255,.05);border:1px solid var(--rim);color:#F0A878;
+ font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;
+ transition:background .15s,border-color .15s,color .15s;
+}
+.orbital-streak:hover{background:rgba(255,255,255,.1);border-color:rgba(240,168,120,.55)}
+.orbital-streak.is-cold{color:var(--ink-2)}
+.orbital-streak.is-cold:hover{color:var(--ink-1);border-color:rgba(255,255,255,.3)}

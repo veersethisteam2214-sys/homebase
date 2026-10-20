@@ -18,7 +18,7 @@ function label(task:Task){return task.source?`${task.title} (${task.source.toLow
 function tasksAnswer(state:State,today:string){
  const all=tasksFor(state,today);
  const open=all.filter(t=>!t.done);
- if(!all.length)return 'Nothing on your list today. Open Today and add what matters.';
+ if(!all.length)return 'Nothing on your list today. Open the to-do list and add what matters.';
  if(!open.length)return `All ${plural(all.length,'task')} done today. Nothing left.`;
  const critical=open.filter(t=>t.important);
  const rest=open.filter(t=>!t.important);
