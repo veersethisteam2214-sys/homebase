@@ -6,6 +6,7 @@ import {elapsed} from '../../lib/life';
 import {minutesUntil} from '../../lib/clock';
 import {sessionFor,sessionsThisWeek} from '../../lib/gym';
 import {sections,type SectionId} from './section-meta';
+import ProfileMenu from './profile-menu';
 import type {View} from './types';
 import {useNow} from './ui';
 
@@ -21,6 +22,7 @@ type Orb={
 
 const milestones=[1,3,7,14,30,60,90,180,365];
 const ratio=(part:number,whole:number)=>whole>0?Math.min(1,Math.max(0,part/whole)):0;
+const shortDate=(date:string)=>new Date(date+'T12:00:00Z').toLocaleDateString('en-AU',{day:'numeric',month:'short',timeZone:'UTC'});
 
 function orbFor(id:SectionId,state:State,today:string):Omit<Orb,'id'|'label'>{
  const tasks=tasksFor(state,today);
@@ -42,10 +44,10 @@ function orbFor(id:SectionId,state:State,today:string):Omit<Orb,'id'|'label'>{
   case 'assignments':{
    const pending=state.assignments.filter(a=>!['submitted','graded'].includes(a.status));
    const next=[...pending].sort((a,b)=>a.date.localeCompare(b.date))[0];
-   const soon=pending.filter(a=>a.date<=today).length>0;
+   const soon=pending.some(a=>a.date<=today);
    return {
     value:String(pending.length),
-    detail:next?(next.date<=today?'Due today':`Next ${new Date(next.date+'T12:00:00Z').toLocaleDateString('en-AU',{day:'numeric',month:'short',timeZone:'UTC'})}`):'Nothing due',
+    detail:next?(next.date<=today?'Due today':`Next ${shortDate(next.date)}`):'Nothing due',
     charge:ratio(state.assignments.length-pending.length,state.assignments.length),
     urgent:soon,
    };
@@ -93,7 +95,17 @@ function greeting(hour:number){
  return 'Good evening';
 }
 
-export default function Orbital({state,today,go,onListView}:{state:State;today:string;go:(view:View)=>void;onListView:()=>void}){
+type Props={
+ state:State;
+ today:string;
+ busy:boolean;
+ theme:'light'|'dark';
+ go:(view:View)=>void;
+ onListView:()=>void;
+ onToggleTheme:()=>void;
+};
+
+export default function Orbital({state,today,busy,theme,go,onListView,onToggleTheme}:Props){
  const now=useNow(1000);
  const [picked,setPicked]=useState<SectionId|null>(null);
 
@@ -103,7 +115,6 @@ export default function Orbital({state,today,go,onListView}:{state:State;today:s
   ...orbFor(section.id,state,today),
  })),[state,today]);
 
- // Escape clears the selection, so the orbit is never a trap for keyboard users.
  useEffect(()=>{
   if(!picked)return;
   const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setPicked(null);};
@@ -118,7 +129,6 @@ export default function Orbital({state,today,go,onListView}:{state:State;today:s
 
  const tasks=tasksFor(state,today);
  const steps=state.routine.length,checked=state.checks[today]?.length??0;
- // One number for the whole day: the list and the morning routine together.
  const dayDone=tasks.filter(t=>t.done).length+checked;
  const dayTotal=tasks.length+steps;
  const dayCharge=ratio(dayDone,dayTotal);
@@ -127,19 +137,25 @@ export default function Orbital({state,today,go,onListView}:{state:State;today:s
  const selectedMeta=picked?sections.find(s=>s.id===picked)??null:null;
  const circumference=2*Math.PI*46;
 
- return <div className="orbital">
-  <div className="orbital-head">
-   <div>
+ return <div className="orbital-screen">
+  <div className="orbital-stars" aria-hidden="true"/>
+  <div className="orbital-vignette" aria-hidden="true"/>
+
+  <header className="orbital-bar">
+   <div style={{minWidth:0}}>
     <p className="orbital-eyebrow">{date}</p>
     <h1 className="orbital-greeting">{greeting(hour)}{state.displayName?`, ${state.displayName.split(/\s+/)[0]}`:''}</h1>
    </div>
-   <button type="button" className="orbital-switch" onClick={onListView}>
-    <LayoutGrid size={15}/>List view
-   </button>
-  </div>
+   <div className="orbital-bar-right">
+    <span className="orbital-save">{busy?'Saving':'Saved'}</span>
+    <ProfileMenu name={state.displayName??''} theme={theme} onToggleTheme={onToggleTheme} go={go} onDark/>
+   </div>
+  </header>
 
-  <div className="orbital-field">
+  <div className="orbital-stage">
    <div className="orbital-glow" aria-hidden="true"/>
+   <div className="orbital-halo" aria-hidden="true"/>
+   <div className="orbital-ticks" aria-hidden="true"/>
    <div className="orbital-track" aria-hidden="true"/>
    <div className="orbital-sweep" aria-hidden="true"/>
 
@@ -165,9 +181,7 @@ export default function Orbital({state,today,go,onListView}:{state:State;today:s
          <circle className="orbital-arc-fill" cx="50" cy="50" r="46"
           strokeDasharray={`${circumference*orb.charge} ${circumference}`}/>
         </svg>
-        <span className="orbital-node-face">
-         {Icon?<Icon size={19}/>:null}
-        </span>
+        <span className="orbital-node-face">{Icon?<Icon size={18}/>:null}</span>
        </button>
        <span className="orbital-label">
         <b>{orb.label}</b>
@@ -185,7 +199,7 @@ export default function Orbital({state,today,go,onListView}:{state:State;today:s
       strokeDasharray={`${circumference*dayCharge} ${circumference}`}/>
     </svg>
     {selected&&selectedMeta
-     ? <div className="orbital-core-body">
+     ? <div className="orbital-core-body" key={selected.id}>
        <span className="orbital-core-kicker">{selectedMeta.label}</span>
        <strong className="orbital-core-value">{selected.value}</strong>
        <span className="orbital-core-detail">{selected.detail}</span>
@@ -201,6 +215,11 @@ export default function Orbital({state,today,go,onListView}:{state:State;today:s
    </div>
   </div>
 
-  <p className="orbital-hint">{picked?'Press escape to clear, or open the section.':'Select a node to see it, double click to open it.'}</p>
+  <footer className="orbital-foot">
+   <p className="orbital-hint">{picked?'Escape to clear · double click a node to open it':'Select a node · double click to open'}</p>
+   <button type="button" className="orbital-switch" onClick={onListView}>
+    <LayoutGrid size={14}/>List view
+   </button>
+  </footer>
  </div>;
 }

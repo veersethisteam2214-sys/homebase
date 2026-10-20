@@ -169,6 +169,9 @@ export default function Homebase(){
 
  const quoteOpen=Boolean(settings.quotePopup)&&!quoteDone&&!(state.quoteSeen??[]).includes(today);
  const props:SectionProps={state,today,busy,storage,change,adopt,go:setView,notify};
+ const toggleTheme=()=>change(settings.theme==='dark'?'Switched to the light theme':'Switched to the dark theme',s=>{
+  s.settings={...defaultSettings(),...s.settings,theme:settings.theme==='dark'?'light':'dark'};
+ });
 
  const body=(()=>{
   switch(view){
@@ -185,17 +188,16 @@ export default function Homebase(){
    case 'settings':return <SettingsSection {...props}/>;
    default:return listView
     ? <Overview state={state} today={today} go={setView} onOrbitView={()=>setListView(false)}/>
-    : <Orbital state={state} today={today} go={setView} onListView={()=>setListView(true)}/>;
+    : <Orbital state={state} today={today} busy={busy} theme={settings.theme} go={setView}
+       onListView={()=>setListView(true)} onToggleTheme={toggleTheme}/>;
   }
  })();
 
+ // The dashboard is the orbit, full bleed: it carries its own profile menu and needs no bar.
  return <>
-  <TopNav view={view} go={setView} name={state.displayName??''} busy={busy} theme={settings.theme}
-   onToggleTheme={()=>change(settings.theme==='dark'?'Switched to the light theme':'Switched to the dark theme',s=>{
-    s.settings={...defaultSettings(),...s.settings,theme:settings.theme==='dark'?'light':'dark'};
-   })}/>
+  {(view!=='dashboard'||listView)&&<TopNav go={setView} name={state.displayName??''} busy={busy} theme={settings.theme} onToggleTheme={toggleTheme}/>}
 
-  <main className="page">{body}</main>
+  {view==='dashboard'&&!listView?body:<main className="page">{body}</main>}
 
   <QuoteGate today={today} open={quoteOpen} onClose={()=>{
    setQuoteDone(true);
