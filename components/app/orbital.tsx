@@ -1,6 +1,7 @@
 'use client';
 import {useMemo,useState} from 'react';
-import {LayoutGrid} from 'lucide-react';
+import {Check,LayoutGrid} from 'lucide-react';
+import ChatPanel from './chat-panel';
 import {tasksFor,type State} from '../../lib/planner';
 import {elapsed} from '../../lib/life';
 import {minutesUntil} from '../../lib/clock';
@@ -18,18 +19,28 @@ type Orb={
  /** 0 to 1. Drives the arc around the node and how brightly it burns. */
  charge:number;
  urgent:boolean;
+ /** Fully finished for today. The node changes colour and fires a one-shot burst. */
+ done:boolean;
 };
+
+/** Only the sections that can actually be finished in a day celebrate. */
+const FINISHABLE=new Set<SectionId>(['today','routine','gym']);
 
 const milestones=[1,3,7,14,30,60,90,180,365];
 const ratio=(part:number,whole:number)=>whole>0?Math.min(1,Math.max(0,part/whole)):0;
 const shortDate=(date:string)=>new Date(date+'T12:00:00Z').toLocaleDateString('en-AU',{day:'numeric',month:'short',timeZone:'UTC'});
 
-function orbFor(id:SectionId,state:State,today:string):Omit<Orb,'id'|'label'>{
+function orbFor(id:SectionId,state:State,today:string):Omit<Orb,'id'|'label'|'done'>{
  const tasks=tasksFor(state,today);
  const doneTasks=tasks.filter(t=>t.done).length;
  switch(id){
   case 'today':
    return {value:`${doneTasks}/${tasks.length}`,detail:tasks.length?`${tasks.length-doneTasks} still open`:'Nothing on the list',charge:ratio(doneTasks,tasks.length),urgent:false};
+  case 'routine':{
+   const steps=state.routine.length,checked=(state.checks[today]??[]).length;
+   if(!steps)return {value:'—',detail:'Not set up',charge:0,urgent:false};
+   return {value:`${checked}/${steps}`,detail:checked>=steps?'Nothing left':`${steps-checked} to go`,charge:ratio(checked,steps),urgent:false};
+  }
   case 'gym':{
    const gym=state.gym;
    if(!gym)return {value:'—',detail:'Not set up',charge:0,urgent:false};
@@ -108,11 +119,10 @@ export default function Orbital({state,today,busy,go,onListView}:Props){
  // Pointing at a node previews it in the core; clicking opens it. There is no in-between.
  const [peeked,setPeeked]=useState<SectionId|null>(null);
 
- const orbs=useMemo<Orb[]>(()=>sections.filter(s=>s.onDashboard).map(section=>({
-  id:section.id,
-  label:section.label,
-  ...orbFor(section.id,state,today),
- })),[state,today]);
+ const orbs=useMemo<Orb[]>(()=>sections.filter(s=>s.onDashboard).map(section=>{
+  const base=orbFor(section.id,state,today);
+  return {id:section.id,label:section.label,...base,done:FINISHABLE.has(section.id)&&base.charge>=1};
+ }),[state,today]);
 
 
  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Australia/Hobart',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(now));
@@ -121,6 +131,7 @@ export default function Orbital({state,today,busy,go,onListView}:Props){
  const date=new Date(today+'T12:00:00Z').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'});
 
  const tasks=tasksFor(state,today);
+ const critical=tasks.filter(t=>t.important).slice(0,3);
  const steps=state.routine.length,checked=state.checks[today]?.length??0;
  const dayDone=tasks.filter(t=>t.done).length+checked;
  const dayTotal=tasks.length+steps;
@@ -138,6 +149,16 @@ export default function Orbital({state,today,busy,go,onListView}:Props){
    <div style={{minWidth:0}}>
     <p className="orbital-eyebrow">{date}</p>
     <h1 className="orbital-greeting">{greeting(hour)}{state.displayName?`, ${state.displayName.split(/\s+/)[0]}`:''}</h1>
+    <div className="orbital-critical">
+     <span className="orbital-critical-label">Critical</span>
+     {critical.length
+      ? <ul>
+        {critical.map(task=><li key={task.id} className={task.done?'is-done':undefined}>
+         <span className="orbital-critical-dot" aria-hidden="true"/>{task.title}
+        </li>)}
+       </ul>
+      : <p className="orbital-critical-empty">Star up to three tasks in Today to pin them here</p>}
+    </div>
    </div>
    <div className="orbital-bar-right">
     <span className="orbital-save">{busy?'Saving':'Saved'}</span>
@@ -145,7 +166,8 @@ export default function Orbital({state,today,busy,go,onListView}:Props){
    </div>
   </header>
 
-  <div className="orbital-stage">
+  <div className="orbital-body">
+   <div className="orbital-stage">
    <div className="orbital-glow" aria-hidden="true"/>
    <div className="orbital-halo" aria-hidden="true"/>
    <div className="orbital-ticks" aria-hidden="true"/>
@@ -163,8 +185,8 @@ export default function Orbital({state,today,busy,go,onListView}:Props){
       <div className={peeked?'orbital-upright is-paused':'orbital-upright'}>
        <button
         type="button"
-        className={`orbital-node${active?' is-active':''}${orb.urgent?' is-urgent':''}`}
-        aria-label={`Open ${orb.label}: ${orb.value}, ${orb.detail}`}
+        className={`orbital-node${active?' is-active':''}${orb.urgent?' is-urgent':''}${orb.done?' is-done':''}`}
+        aria-label={`Open ${orb.label}: ${orb.value}, ${orb.detail}${orb.done?', complete':''}`}
         onClick={()=>go(orb.id)}
         onMouseEnter={()=>setPeeked(orb.id)}
         onMouseLeave={()=>setPeeked(current=>current===orb.id?null:current)}
@@ -176,7 +198,7 @@ export default function Orbital({state,today,busy,go,onListView}:Props){
          <circle className="orbital-arc-fill" cx="50" cy="50" r="46"
           strokeDasharray={`${circumference*orb.charge} ${circumference}`}/>
         </svg>
-        <span className="orbital-node-face">{Icon?<Icon size={18}/>:null}</span>
+        <span className="orbital-node-face">{orb.done?<Check size={20}/>:Icon?<Icon size={18}/>:null}</span>
        </button>
        <span className="orbital-label">
         <b>{orb.label}</b>
@@ -205,6 +227,8 @@ export default function Orbital({state,today,busy,go,onListView}:Props){
        <span className="orbital-core-detail">{dayTotal?`${dayDone} of ${dayTotal} done`:'Nothing planned yet'}</span>
       </div>}
    </div>
+   </div>
+   <ChatPanel state={state} today={today}/>
   </div>
 
   <footer className="orbital-foot">

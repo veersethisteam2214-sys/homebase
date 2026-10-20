@@ -18,6 +18,7 @@ import GymSection from '../components/app/sections/gym';
 import HistorySection from '../components/app/sections/history';
 import ProjectsSection from '../components/app/sections/projects';
 import RemindersSection from '../components/app/sections/reminders';
+import RoutineSection from '../components/app/sections/routine';
 import SettingsSection from '../components/app/sections/settings';
 import StreakSection from '../components/app/sections/streak';
 import TodaySection from '../components/app/sections/today';
@@ -174,6 +175,7 @@ export default function Homebase(){
  const body=(()=>{
   switch(view){
    case 'today':return <TodaySection {...props}/>;
+   case 'routine':return <RoutineSection {...props}/>;
    case 'gym':return <GymSection {...props}/>;
    case 'goals':return <GoalsSection {...props}/>;
    case 'assignments':return <AssignmentsSection {...props}/>;
