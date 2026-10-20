@@ -7,10 +7,25 @@ import type {StateStore,StoredState} from './state-store';
 const pools=new Map<string,Pool>();
 const prepared=new Set<string>();
 
+/**
+ * node-postgres treats sslmode=require as verify-full, which rejects managed providers
+ * whose chain is not in Node's trust store — Supabase's pooler among them. libpq's own
+ * meaning for `require` is encrypt without verifying the chain, which is what a string
+ * asking for `require` actually intends, so honour that. Asking for `verify-full`
+ * explicitly keeps full verification.
+ */
+function sslFor(connectionString:string){
+ let mode:string|null=null;
+ try{mode=new URL(connectionString).searchParams.get('sslmode');}catch{/* keyword DSNs fall through to the default */}
+ if(mode==='disable')return false;
+ if(mode==='verify-full'||mode==='verify-ca')return {rejectUnauthorized:true};
+ return {rejectUnauthorized:false};
+}
+
 function poolFor(connectionString:string){
  let pool=pools.get(connectionString);
  if(!pool){
-  pool=new Pool({connectionString,max:3,idleTimeoutMillis:10000,connectionTimeoutMillis:8000});
+  pool=new Pool({connectionString,ssl:sslFor(connectionString),max:3,idleTimeoutMillis:10000,connectionTimeoutMillis:8000});
   // A dropped idle connection must not take the process down with it.
   pool.on('error',()=>{});
   pools.set(connectionString,pool);
