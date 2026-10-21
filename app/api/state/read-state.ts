@@ -1,5 +1,5 @@
 import type {State} from '../../../lib/planner';
-import {capitalise,defaultSettings} from '../../../lib/planner';
+import {capitalise,defaultSettings,seedUnits} from '../../../lib/planner';
 import {upgradeLife} from '../../../lib/life';
 import {ensureRoutinePresets} from '../../../lib/routine-presets';
 import {upgradeGym} from '../../../lib/gym';
@@ -12,6 +12,8 @@ export function upgradeState(state:State){
  // as the ones saved after. The route persists the result when it differs.
  for(const step of state.routine)step.title=capitalise(step.title);
  for(const preset of state.routinePresets??[])for(const step of preset.steps)step.title=capitalise(step.title);
+ // Seeded only when the field has never existed, so deleting a unit makes it stay gone.
+ state.units??=seedUnits.map(name=>({id:crypto.randomUUID(),name,notes:[]}));
  state.quoteSeen??=[];
  state.settings={...defaultSettings(),...state.settings};
  // The dismissal list only needs enough history to survive a few days offline.

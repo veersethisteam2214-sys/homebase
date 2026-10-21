@@ -8,6 +8,10 @@ export function capitalise(value:string){
 }
 export type ProjectNote = {id:string; text:string; at:string; pinned?:boolean};
 export type Project = {id:string; title:string; action:string; days:number[]; active:boolean; summary?:string; notes?:ProjectNote[]};
+/** A unit of study. Assessments belong to one by name, and notes hang off it. */
+export type Unit = {id:string; name:string; notes?:ProjectNote[]};
+/** Seeded once, so the assignments screen opens on this semester rather than empty. */
+export const seedUnits=['ALR376 Ethics, Persuasion and Society','WIL Internship'];
 export type AppSettings={accent:string;theme:'light'|'dark';quotePopup:boolean;volume:number;clockZone:string;monogram:string};
 /** Offered by the clock on the dashboard. Any IANA zone is accepted when stored. */
 export const clockZones=[
@@ -44,7 +48,7 @@ export const accentPattern=/^#[0-9a-f]{6}$/i;
 export function defaultSettings():AppSettings{
  return {accent:'#27514A',theme:'dark',quotePopup:true,volume:0.7,clockZone:'Australia/Hobart',monogram:'VS'};
 }
-export type State = {tasks:Task[]; projects:Project[]; goals:{id:string;title:string;progress:number}[]; routine:{id:string;title:string;time?:string}[]; checks:Record<string,string[]>; unlocked:string[]; assignments:Assignment[]; classes?:ClassEntry[]; displayName?:string; history:{id:string;time:string;text:string}[]; reminders:{id:string;title:string;time:string;enabled:boolean}[]; notes:Record<string,string>; termEnd:string; plannedDates?:string[]; lastPlanDate?:string; routinePresets?:import("./routine-presets").RoutinePreset[]; activeRoutinePresetId?:string; videos?:import("./life").Video[]; streak?:import("./life").Streak; motivation?:import("./life").Motivation; listRevision?:number; gym?:import("./gym").Gym; clock?:import("./clock").Clock; quoteSeen?:string[]; settings?:AppSettings};
+export type State = {tasks:Task[]; projects:Project[]; units?:Unit[]; goals:{id:string;title:string;progress:number}[]; routine:{id:string;title:string;time?:string}[]; checks:Record<string,string[]>; unlocked:string[]; assignments:Assignment[]; classes?:ClassEntry[]; displayName?:string; history:{id:string;time:string;text:string}[]; reminders:{id:string;title:string;time:string;enabled:boolean}[]; notes:Record<string,string>; termEnd:string; plannedDates?:string[]; lastPlanDate?:string; routinePresets?:import("./routine-presets").RoutinePreset[]; activeRoutinePresetId?:string; videos?:import("./life").Video[]; streak?:import("./life").Streak; motivation?:import("./life").Motivation; listRevision?:number; gym?:import("./gym").Gym; clock?:import("./clock").Clock; quoteSeen?:string[]; settings?:AppSettings};
 export const weekdays=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 export function dayKey(d=new Date()) {return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Hobart',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
 export function offset(date:string,days:number){const d=new Date(date+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}

@@ -870,3 +870,18 @@ input[type=range]{accent-color:var(--accent)}
 /* Narrow rails cannot hold a row of controls side by side. */
 .row-wrap{flex-wrap:wrap}
 .row-wrap>input,.row-wrap>select{flex:1 1 92px;min-width:0}
+
+/* A unit card holds two lists; these name them without stealing the card heading. */
+.unit-label{margin:22px 0 10px;padding-top:15px;border-top:1px solid var(--line)}
+.card>.unit-label:first-of-type{margin-top:0;padding-top:0;border-top:0}
+
+/* Name it, date it, weight it: the whole entry on one line under the assessments. */
+.assess-entry{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:14px}
+.assess-entry .field{flex:1 1 100%;margin:0}
+.assess-entry input[type=date]{flex:1 1 140px;min-width:0}
+.assess-entry .weight-input{flex:0 0 78px;min-width:0;text-align:center}
+.assess-entry button{flex:0 0 auto}
+@media (max-width:620px){
+ .assess-entry input[type=date],.assess-entry .weight-input,.assess-entry button{flex:1 1 100%}
+ .assess-entry button{justify-content:center}
+}

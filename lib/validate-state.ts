@@ -12,6 +12,10 @@ export function validState(value:unknown):value is State {
  // A routine step may carry a clock time; anything else in that field is rejected rather
 // than written into the page.
  if(state.routine.some(step=>step&&step.time!==undefined&&(typeof step.time!=='string'||!validTime(step.time))))return false;
+ // Unit names and notes are read straight onto the page, so neither may be anything else.
+ if(state.units!==undefined&&(!Array.isArray(state.units)||state.units.some(u=>
+  !u||typeof u!=='object'||typeof u.id!=='string'||typeof u.name!=='string'||u.name.length>160
+  ||(u.notes!==undefined&&(!Array.isArray(u.notes)||u.notes.some(n=>!n||typeof n.text!=='string'||n.text.length>4000||typeof n.at!=='string'))))))return false;
  if(state.gym!==undefined&&!validGym(state.gym))return false;
  if(state.clock!==undefined&&!validClock(state.clock))return false;
  if(state.quoteSeen!==undefined&&(!Array.isArray(state.quoteSeen)||state.quoteSeen.length>400||state.quoteSeen.some(d=>typeof d!=='string'||d.length>10)))return false;
