@@ -1,16 +1,53 @@
 'use client';
 import {useState} from 'react';
-import {Bell,Check,Cloud,HardDrive,Volume2} from 'lucide-react';
+import {Bell,Check,Cloud,Download,HardDrive,Upload,Volume2} from 'lucide-react';
 import {accents,defaultSettings} from '../../../lib/planner';
+import type {State} from '../../../lib/planner';
 import {ringtoneNames,ringtoneIds} from '../../../lib/clock';
 import {playRingtone,primeAudio} from '../../../lib/ringtones';
 import type {SectionProps} from '../types';
-import {Card,PageHead,Switch} from '../ui';
+import {Card,Modal,PageHead,Switch} from '../ui';
 
-export default function SettingsSection({state,busy,storage,change,go,notify}:SectionProps){
+const REQUIRED=['tasks','history','routine','projects','goals','assignments','reminders','unlocked'] as const;
+const summary=(planner:State)=>[
+ `${planner.goals.length} goals`,
+ `${planner.projects.length} projects`,
+ `${planner.assignments.length} assessments`,
+ `${planner.routine.length} routine steps`,
+ `${planner.tasks.length} tasks`,
+].join(' · ');
+
+export default function SettingsSection({state,today,busy,storage,change,go,notify}:SectionProps){
  const settings=state.settings??defaultSettings();
  const [volume,setVolume]=useState(settings.volume);
  const [name,setName]=useState(state.displayName??'');
+ const [pending,setPending]=useState<{name:string;planner:State}|null>(null);
+
+ const exportPlanner=()=>{
+  const blob=new Blob([JSON.stringify(state,null,1)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download=`homebase-${today}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  notify('Planner exported.');
+ };
+
+ // Read and check the file before anything is replaced, so a wrong file is caught here
+ // rather than by the server after the current planner is already gone.
+ const stage=async(file:File)=>{
+  try{
+   const planner=JSON.parse(await file.text()) as State;
+   const shaped=planner&&typeof planner==='object'
+    &&REQUIRED.every(key=>Array.isArray((planner as unknown as Record<string,unknown>)[key]))
+    &&planner.checks&&typeof planner.checks==='object';
+   if(!shaped)throw Error('That file is not a Homebase planner.');
+   setPending({name:file.name,planner});
+  }catch(e){
+   notify(e instanceof SyntaxError?'That file is not valid JSON.':(e as Error).message,'error');
+  }
+ };
 
  const edit=(label:string,patch:Partial<typeof settings>)=>change(label,s=>{
   s.settings={...defaultSettings(),...s.settings,...patch};
@@ -86,6 +123,26 @@ export default function SettingsSection({state,busy,storage,change,go,notify}:Se
      </div>
      <p className="tiny" style={{marginTop:12}}>Ringtones are generated in the browser, so they need no files and work offline.</p>
     </Card>
+
+    <Card title="Your data" action={<span className="tiny">Moves a planner between installations</span>}>
+     <p className="muted" style={{marginBottom:14}}>
+      Export writes your whole planner to a file. Import replaces this planner with one from a file,
+      which is how you move it from a local copy onto a hosted one without touching the database.
+     </p>
+     <div className="row" style={{flexWrap:'wrap',gap:10}}>
+      <button type="button" className="btn" onClick={exportPlanner}><Download size={16}/>Export planner</button>
+      <label className="btn" style={{cursor:'pointer'}}>
+       <Upload size={16}/>Import planner
+       <input type="file" accept="application/json,.json" style={{display:'none'}} disabled={busy}
+        onChange={e=>{
+         const file=e.target.files?.[0];
+         e.target.value='';
+         if(file)void stage(file);
+        }}/>
+      </label>
+     </div>
+     <p className="tiny" style={{marginTop:12}}>Importing replaces everything here. You are asked to confirm first.</p>
+    </Card>
    </div>
 
    <div className="rail">
@@ -134,5 +191,32 @@ export default function SettingsSection({state,busy,storage,change,go,notify}:Se
     </Card>
    </div>
   </div>
+
+  <Modal open={pending!==null} onClose={()=>setPending(null)} title="Replace this planner?"
+   description="Everything currently here is overwritten by the file. This cannot be undone, so export first if you have not.">
+   {pending&&<div className="stack" style={{gap:14}}>
+    <div className="card" style={{padding:'14px 16px'}}>
+     <div className="eyebrow">Coming in</div>
+     <strong style={{display:'block',marginTop:4,fontWeight:500}}>{pending.name}</strong>
+     <p className="tiny" style={{marginTop:6}}>{summary(pending.planner)}</p>
+    </div>
+    <div className="card" style={{padding:'14px 16px'}}>
+     <div className="eyebrow">Being replaced</div>
+     <p className="tiny" style={{marginTop:6}}>{summary(state)}</p>
+    </div>
+    <div className="row">
+     <button type="button" className="btn btn-primary" disabled={busy} onClick={()=>{
+      const planner=pending.planner;
+      change('Imported a planner from a file',draft=>{
+       for(const key of Object.keys(draft))delete (draft as unknown as Record<string,unknown>)[key];
+       Object.assign(draft,planner);
+      });
+      setPending(null);
+      notify('Planner imported.');
+     }}>Replace planner</button>
+     <button type="button" className="btn" onClick={()=>setPending(null)}>Cancel</button>
+    </div>
+   </div>}
+  </Modal>
  </div>;
 }
