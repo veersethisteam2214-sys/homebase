@@ -118,7 +118,7 @@ export default function RoutineSection({state,today,busy,change,go}:SectionProps
     </div>)}
    </div>
 
-   <form className="row" onSubmit={e=>{
+   <form className="entry" onSubmit={e=>{
     e.preventDefault();
     const title=capitalise(step);
     if(!title)return;
@@ -132,9 +132,9 @@ export default function RoutineSection({state,today,busy,change,go}:SectionProps
     <label className="sr-only" htmlFor="new-step-time">Time, optional</label>
     <input id="new-step-time" type="time" value={stepTime} onChange={e=>setStepTime(e.target.value)}
      title="Time, optional" style={{width:'auto',flex:'none'}}/>
-    <button type="submit" className="btn btn-primary" disabled={busy||!step.trim()}><Plus size={17}/>Add</button>
+    <button type="submit" className="btn btn-primary btn-sm" disabled={busy||!step.trim()}><Plus size={16}/>Add</button>
    </form>
-   <p className="tiny" style={{marginTop:8}}>Steps are capitalised for you. The time is optional and stays set, so a run of steps is quick to add.</p>
+   <p className="entry-hint">Steps are capitalised for you. The time is optional and stays set, so a run of steps is quick to add.</p>
 
    <div style={{marginTop:20,paddingTop:18,borderTop:'1px solid var(--line)'}}>
     <div className="field">

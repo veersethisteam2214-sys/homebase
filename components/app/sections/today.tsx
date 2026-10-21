@@ -1,7 +1,7 @@
 'use client';
 import {useState} from 'react';
 import {ArrowRight,Dumbbell,Plus,Star,Trash2} from 'lucide-react';
-import {tasksFor,type Task} from '../../../lib/planner';
+import {capitalise,tasksFor,type Task} from '../../../lib/planner';
 import {sessionFor} from '../../../lib/gym';
 import type {SectionProps} from '../types';
 import {Bar,Card,ConfirmButton,Empty,PageHead} from '../ui';
@@ -30,7 +30,7 @@ function TaskRow({task,today,busy,change,canStar}:{task:Task;today:string;busy:b
    <button type="button" className="btn-icon" aria-label={task.important?'Remove from critical':'Mark as critical'}
     disabled={busy||(!task.important&&!canStar)} onClick={setCritical}
     style={task.important?{color:'var(--accent)'}:undefined}>
-    <Star size={16}/>
+    <Star size={16} fill={task.important?'currentColor':'none'}/>
    </button>
    <ConfirmButton label="Delete task" confirmLabel="Delete" disabled={busy}
     onConfirm={()=>change(`Deleted task: ${task.title}`,s=>{
@@ -46,6 +46,7 @@ function TaskRow({task,today,busy,change,canStar}:{task:Task;today:string;busy:b
 
 export default function TodaySection({state,today,busy,change,go}:SectionProps){
  const [draft,setDraft]=useState('');
+ const [draftCritical,setDraftCritical]=useState(false);
  const [filter,setFilter]=useState<'all'|'open'|'done'>('all');
 
  const tasks=tasksFor(state,today);
@@ -56,11 +57,18 @@ export default function TodaySection({state,today,busy,change,go}:SectionProps){
  const classesToday=(state.classes??[]).filter(c=>c.day===new Date(today+'T12:00:00Z').toLocaleDateString('en-AU',{weekday:'short',timeZone:'UTC'}));
  const dueSoon=state.assignments.filter(a=>!['submitted','graded'].includes(a.status)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
 
+ const roomForCritical=critical.length<MAX_CRITICAL;
  const addTask=()=>{
-  const title=draft.trim();
+  const title=capitalise(draft);
   if(!title)return;
-  change(`Added task: ${title}`,s=>{s.tasks.push({id:crypto.randomUUID(),title,date:today,done:false});});
+  const important=draftCritical&&roomForCritical;
+  change(`Added task: ${title}`,s=>{
+   s.tasks.push(important
+    ? {id:crypto.randomUUID(),title,date:today,done:false,important:true}
+    : {id:crypto.randomUUID(),title,date:today,done:false});
+  });
   setDraft('');
+  setDraftCritical(false);
  };
 
  return <div className="stack">
@@ -83,13 +91,24 @@ export default function TodaySection({state,today,busy,change,go}:SectionProps){
        </button>)}
      </div>
     }>
-     <form className="row" style={{marginBottom:12}} onSubmit={e=>{e.preventDefault();addTask();}}>
+     <form className="entry" onSubmit={e=>{e.preventDefault();addTask();}}>
       <label className="sr-only" htmlFor="new-task">Add a task</label>
-      <input id="new-task" value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Add a task and press enter" maxLength={300}/>
-      <button type="submit" className="btn btn-primary" disabled={busy||!draft.trim()}><Plus size={17}/>Add</button>
+      <input id="new-task" value={draft} onChange={e=>setDraft(e.target.value)} placeholder="What needs doing today?" maxLength={300}/>
+      <button type="button" className="btn-icon" aria-pressed={draftCritical}
+       aria-label={draftCritical?'Critical, tap to unset':'Mark as critical'}
+       title={roomForCritical||draftCritical?'Mark as critical':`Already ${MAX_CRITICAL} critical`}
+       disabled={!draftCritical&&!roomForCritical}
+       style={draftCritical?{color:'var(--accent)'}:undefined}
+       // Keeps the caret in the field, so enter still adds the task after starring it.
+       onMouseDown={e=>e.preventDefault()}
+       onClick={()=>setDraftCritical(v=>!v)}>
+       <Star size={16} fill={draftCritical?'currentColor':'none'}/>
+      </button>
+      <button type="submit" className="btn btn-primary btn-sm" disabled={busy||!draft.trim()}><Plus size={16}/>Add</button>
      </form>
+     <p className="entry-hint">Enter adds it. Star it first to pin it to the dashboard.</p>
      {shown.length===0
-      ? <Empty>{rest.length?'Nothing in this filter.':'Nothing on the list yet.'}</Empty>
+      ? <Empty>{rest.length?'Nothing in this filter.':critical.length?'Everything today is starred as critical.':'Nothing on the list yet.'}</Empty>
       : <div className="list">{shown.map(t=><TaskRow key={t.id} task={t} today={today} busy={busy} change={change} canStar={critical.length<MAX_CRITICAL}/>)}</div>}
     </Card>
 

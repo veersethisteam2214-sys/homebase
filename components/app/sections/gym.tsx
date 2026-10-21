@@ -189,7 +189,7 @@ export default function GymSection({state,today,busy,change,go,notify}:SectionPr
       </div>
      </div>)}
     </div>
-    <form className="row" onSubmit={e=>{
+    <form className="entry" onSubmit={e=>{
      e.preventDefault();
      const name=sessionName.trim();
      if(!name)return;
@@ -200,7 +200,7 @@ export default function GymSection({state,today,busy,change,go,notify}:SectionPr
     }}>
      <label className="sr-only" htmlFor="session-name">Session name</label>
      <input id="session-name" value={sessionName} onChange={e=>setSessionName(e.target.value)} placeholder="Push, pull or legs" maxLength={60}/>
-     <button type="submit" className="btn btn-primary" disabled={busy||!sessionName.trim()}><Plus size={17}/>Add session</button>
+     <button type="submit" className="btn btn-primary btn-sm" disabled={busy||!sessionName.trim()}><Plus size={16}/>Add session</button>
     </form>
    </>:<>
     <button type="button" className="back-link" onClick={()=>setOpenSession(null)}>All sessions</button>

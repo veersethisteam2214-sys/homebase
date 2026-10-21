@@ -679,3 +679,42 @@ input[type=range]{accent-color:var(--accent)}
 @media (prefers-reduced-motion:reduce){
  .routine-dot,.routine-meter>i,.routine-step{transition:none}
 }
+
+/* ---------- entering things ---------- */
+/* One field, one button, one border. The whole thing lights up on focus so it reads as
+   a single place to type rather than an input sitting next to an unrelated button. */
+.entry{
+ display:flex;align-items:center;gap:8px;
+ padding:5px 5px 5px 14px;border-radius:12px;
+ background:var(--surface-sunk);border:1px solid var(--line);
+ transition:border-color .15s,box-shadow .15s,background .15s;
+}
+.entry:focus-within{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-tint)}
+.entry>input[type=text],
+.entry>input[type=url],
+.entry>input:not([type]){
+ flex:1 1 auto;min-width:0;min-height:42px;
+ background:transparent;border:0;padding:0;border-radius:0;
+}
+.entry>input:focus{background:transparent;box-shadow:none;border-color:transparent}
+.entry>input[type=time],.entry>input[type=date],.entry>input[type=number]{
+ flex:none;width:auto;min-height:36px;padding:5px 9px;font-size:13px;
+ background:var(--surface-mute);border:1px solid transparent;color:var(--ink-soft);
+}
+.entry>input[type=time]:focus,.entry>input[type=date]:focus,.entry>input[type=number]:focus{
+ box-shadow:none;border-color:var(--line-strong);color:var(--ink);
+}
+.entry>.btn{flex:none;min-height:38px}
+.entry-hint{margin-top:8px;font-size:12px;color:var(--ink-mute)}
+
+/* ---------- reading lists ---------- */
+/* Actions used to appear only on hover, which hid them on touch and made them hard to
+   find anywhere. They now sit at low contrast and come forward on hover or focus. */
+.row-actions{opacity:.5;transition:opacity .15s}
+.list-row:hover .row-actions,
+.list-row:focus-within .row-actions,
+.row-actions:focus-within{opacity:1}
+.list-row{padding:12px 10px;gap:11px}
+.list-row input[type=checkbox]{width:18px;height:18px}
+
+.empty{padding:10px 0;line-height:1.6}

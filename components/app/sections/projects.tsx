@@ -1,7 +1,7 @@
 'use client';
 import {useState} from 'react';
 import {ArrowRight,Pin,PinOff,Plus,Trash2} from 'lucide-react';
-import {tasksFor,weekdays,type Project} from '../../../lib/planner';
+import {capitalise,tasksFor,weekdays,type Project} from '../../../lib/planner';
 import type {SectionProps} from '../types';
 import {Card,ConfirmButton,Empty,PageHead,Stat,Switch} from '../ui';
 
@@ -130,9 +130,9 @@ export default function ProjectsSection(props:SectionProps){
   </div>
 
   <Card title="Add a project">
-   <form className="row" onSubmit={e=>{
+   <form className="entry" onSubmit={e=>{
     e.preventDefault();
-    const title=draft.trim();
+    const title=capitalise(draft);
     if(!title)return;
     if(state.projects.some(p=>p.title.toLowerCase()===title.toLowerCase())){notify('You already have a project with that name.','error');return;}
     const id=crypto.randomUUID();
@@ -141,8 +141,8 @@ export default function ProjectsSection(props:SectionProps){
     setOpenId(id);
    }}>
     <label className="sr-only" htmlFor="new-project">Project name</label>
-    <input id="new-project" value={draft} onChange={e=>setDraft(e.target.value)} placeholder="What are you building" maxLength={160}/>
-    <button type="submit" className="btn btn-primary" disabled={busy||!draft.trim()}><Plus size={17}/>Add project</button>
+    <input id="new-project" value={draft} onChange={e=>setDraft(e.target.value)} placeholder="What are you building?" maxLength={160}/>
+    <button type="submit" className="btn btn-primary btn-sm" disabled={busy||!draft.trim()}><Plus size={16}/>Add project</button>
    </form>
   </Card>
 

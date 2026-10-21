@@ -1,6 +1,7 @@
 'use client';
 import {useState} from 'react';
 import {Check,Plus,Trash2} from 'lucide-react';
+import {capitalise} from '../../../lib/planner';
 import type {SectionProps} from '../types';
 import {Bar,Card,ConfirmButton,Empty,PageHead,Stat} from '../ui';
 
@@ -25,17 +26,17 @@ export default function GoalsSection({state,busy,change,go,notify}:SectionProps)
   </div>
 
   <Card title="Add a goal">
-   <form className="row" onSubmit={e=>{
+   <form className="entry" onSubmit={e=>{
     e.preventDefault();
-    const title=draft.trim();
+    const title=capitalise(draft);
     if(!title)return;
     if(goals.some(g=>g.title.toLowerCase()===title.toLowerCase())){notify('You already have a goal with that name.','error');return;}
     change(`Added goal: ${title}`,s=>{s.goals.push({id:crypto.randomUUID(),title,progress:0});});
     setDraft('');
    }}>
     <label className="sr-only" htmlFor="new-goal">Goal</label>
-    <input id="new-goal" value={draft} onChange={e=>setDraft(e.target.value)} placeholder="What do you want to be true by the end of this term" maxLength={200}/>
-    <button type="submit" className="btn btn-primary" disabled={busy||!draft.trim()}><Plus size={17}/>Add goal</button>
+    <input id="new-goal" value={draft} onChange={e=>setDraft(e.target.value)} placeholder="What do you want to be true by the end of this term?" maxLength={200}/>
+    <button type="submit" className="btn btn-primary btn-sm" disabled={busy||!draft.trim()}><Plus size={16}/>Add goal</button>
    </form>
   </Card>
 

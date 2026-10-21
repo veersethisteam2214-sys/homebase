@@ -56,7 +56,8 @@ export default function RemindersSection({state,busy,change,adopt,go,notify}:Sec
       </div>)}
      </div>}
 
-     <form className="row" style={{marginTop:16,paddingTop:14,borderTop:'1px solid var(--line)'}} onSubmit={e=>{
+     <div style={{marginTop:16,paddingTop:14,borderTop:'1px solid var(--line)'}}>
+     <form className="entry" onSubmit={e=>{
       e.preventDefault();
       const title=draft.title.trim();
       if(!title)return;
@@ -66,10 +67,11 @@ export default function RemindersSection({state,busy,change,adopt,go,notify}:Sec
       <label className="sr-only" htmlFor="reminder-title">Reminder</label>
       <input id="reminder-title" value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})} placeholder="What should it say" maxLength={200}/>
       <label className="sr-only" htmlFor="reminder-time">Time</label>
-      <input id="reminder-time" type="time" value={draft.time} onChange={e=>setDraft({...draft,time:e.target.value})} style={{width:'auto'}}/>
-      <button type="submit" className="btn btn-primary" disabled={busy||!draft.title.trim()}><Plus size={17}/>Add</button>
+      <input id="reminder-time" type="time" value={draft.time} onChange={e=>setDraft({...draft,time:e.target.value})}/>
+      <button type="submit" className="btn btn-primary btn-sm" disabled={busy||!draft.title.trim()}><Plus size={16}/>Add</button>
      </form>
-     <p className="tiny" style={{marginTop:10}}>Reminders use Hobart time and show while Homebase is open. For alarms that make a sound, use the alarms section.</p>
+     <p className="entry-hint">Reminders use Hobart time and show while Homebase is open. For alarms that make a sound, use the alarms section.</p>
+     </div>
     </Card>
 
     {motivation&&<Card title="Random motivation" action={
