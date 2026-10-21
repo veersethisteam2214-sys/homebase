@@ -1,115 +1,112 @@
 'use client';
-import {useState} from 'react';
-import {ArrowRight,Dumbbell,Plus,Star,Trash2} from 'lucide-react';
+import {useEffect,useRef} from 'react';
+import {ArrowRight,Dumbbell,Star,Trash2} from 'lucide-react';
 import {capitalise,tasksFor,type Task} from '../../../lib/planner';
 import {sessionFor} from '../../../lib/gym';
 import type {SectionProps} from '../types';
 import {Bar,Card,ConfirmButton,Empty,PageHead} from '../ui';
 
 const MAX_CRITICAL=3;
+/** The list always offers this many lines, so it reads as a page to fill in. */
+const MIN_ROWS=5;
 const shortDate=(date:string)=>new Date(date+'T12:00:00Z').toLocaleDateString('en-AU',{day:'numeric',month:'short',timeZone:'UTC'});
 
-function TaskRow({task,today,busy,change,canStar}:{task:Task;today:string;busy:boolean;change:SectionProps['change'];canStar:boolean}){
- const setDone=()=>change('',s=>{
-  const stored=s.tasks.find(t=>t.id===task.id);
-  if(stored)stored.done=!stored.done;
-  else s.tasks.push({...task,date:today,done:!task.done});
- });
- const setCritical=()=>change('',s=>{
-  const stored=s.tasks.find(t=>t.id===task.id);
-  if(stored)stored.important=!stored.important;
-  else s.tasks.push({...task,date:today,important:!task.important});
- });
- return <div className={task.done?'list-row done':'list-row'}>
-  <label className="list-label">
-   <input type="checkbox" checked={task.done} disabled={busy} onChange={setDone}/>
-   <span className="grow">{task.title}</span>
-  </label>
-  {task.source&&<span className="tag">{task.source}</span>}
-  <div className="row-actions">
-   <button type="button" className="btn-icon" aria-label={task.important?'Remove from critical':'Mark as critical'}
-    disabled={busy||(!task.important&&!canStar)} onClick={setCritical}
-    style={task.important?{color:'var(--accent)'}:undefined}>
-    <Star size={16} fill={task.important?'currentColor':'none'}/>
-   </button>
-   <ConfirmButton label="Delete task" confirmLabel="Delete" disabled={busy}
-    onConfirm={()=>change(`Deleted task: ${task.title}`,s=>{
-     const stored=s.tasks.find(t=>t.id===task.id);
-     if(stored)stored.deleted=true;
-     else s.tasks.push({...task,date:today,deleted:true});
-    })}>
-    <Trash2 size={16}/>
-   </ConfirmButton>
-  </div>
- </div>;
-}
-
 export default function TodaySection({state,today,busy,change,go}:SectionProps){
- const [draft,setDraft]=useState('');
- const [draftCritical,setDraftCritical]=useState(false);
- const [filter,setFilter]=useState<'all'|'open'|'done'>('all');
+ const inputs=useRef(new Map<number,HTMLInputElement>());
+ const pendingFocus=useRef<number|null>(null);
 
  const tasks=tasksFor(state,today);
- const critical=tasks.filter(t=>t.important).slice(0,MAX_CRITICAL);
- const rest=tasks.filter(t=>!t.important);
- const shown=rest.filter(t=>filter==='all'||(filter==='open'?!t.done:t.done));
+ const critical=tasks.filter(t=>t.important);
+ const roomForCritical=critical.length<MAX_CRITICAL;
+ const open=tasks.filter(t=>!t.done).length;
+ const rowCount=Math.max(MIN_ROWS,tasks.length+1);
+
+ // After a line is filled in, the caret moves to the next one so the list can be typed
+ // straight down. Held in a ref because the row it lands on only exists after the render
+ // that adding the task causes.
+ useEffect(()=>{
+  const index=pendingFocus.current;
+  if(index===null)return;
+  pendingFocus.current=null;
+  inputs.current.get(index)?.focus();
+ });
+
+ const edit=(task:Task,label:string,mutate:(t:Task)=>void)=>change(label,s=>{
+  const stored=s.tasks.find(t=>t.id===task.id);
+  if(stored)mutate(stored);
+  else{const copy={...task,date:today};mutate(copy);s.tasks.push(copy);}
+ });
+
+ const commit=(task:Task|null,value:string)=>{
+  const title=capitalise(value);
+  if(task){
+   // Clearing a line does not delete the task: that is what the bin is for.
+   if(!title||title===task.title)return false;
+   edit(task,`Renamed a task to ${title}`,t=>{t.title=title;});
+   return true;
+  }
+  if(!title)return false;
+  change(`Added task: ${title}`,s=>{s.tasks.push({id:crypto.randomUUID(),title,date:today,done:false});});
+  return true;
+ };
+
  const session=state.gym?sessionFor(state.gym,today):null;
  const classesToday=(state.classes??[]).filter(c=>c.day===new Date(today+'T12:00:00Z').toLocaleDateString('en-AU',{weekday:'short',timeZone:'UTC'}));
  const dueSoon=state.assignments.filter(a=>!['submitted','graded'].includes(a.status)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
 
- const roomForCritical=critical.length<MAX_CRITICAL;
- const addTask=()=>{
-  const title=capitalise(draft);
-  if(!title)return;
-  const important=draftCritical&&roomForCritical;
-  change(`Added task: ${title}`,s=>{
-   s.tasks.push(important
-    ? {id:crypto.randomUUID(),title,date:today,done:false,important:true}
-    : {id:crypto.randomUUID(),title,date:today,done:false});
-  });
-  setDraft('');
-  setDraftCritical(false);
- };
-
  return <div className="stack">
-  <PageHead title="To-do list" sub={`${tasks.filter(t=>!t.done).length} open · ${tasks.filter(t=>t.done).length} done`} back={()=>go('dashboard')}/>
+  <PageHead title="To-do list" sub={tasks.length?`${open} open · ${tasks.length-open} done`:'Nothing on the list yet'} back={()=>go('dashboard')}/>
 
   <div className="split">
    <div className="main">
-    <Card tone="lift" title="Critical" action={<span className="tiny">Up to {MAX_CRITICAL}, starred from your list</span>}>
-     {critical.length===0
-      ? <Empty>Star up to three things below. They show on the dashboard under your name.</Empty>
+    <Card tone="lift" title="Today" action={<span className="tiny">Star up to {MAX_CRITICAL} to pin them to the dashboard</span>}>
+     <ol className="todo-list">
+      {Array.from({length:rowCount},(_,index)=>{
+       const task=tasks[index]??null;
+       return <li key={task?task.id:`blank-${index}`}
+        className={`todo-row${task?.done?' is-done':''}${task?.important?' is-critical':''}`}>
+        <span className="todo-num">{index+1}</span>
 
-      : <div className="list">{critical.map(t=><TaskRow key={t.id} task={t} today={today} busy={busy} change={change} canStar/>)}</div>}
-    </Card>
+        {task
+         ? <input type="checkbox" checked={task.done} disabled={busy} aria-label={`${task.title} done`}
+            onChange={()=>edit(task,'',t=>{t.done=!t.done;})}/>
+         : <span className="todo-blank" aria-hidden="true"/>}
 
-    <Card title="Today's list" action={
-     <div className="row" style={{gap:4}}>
-      {(['all','open','done'] as const).map(key=>
-       <button key={key} type="button" className={filter===key?'btn btn-sm btn-soft':'btn btn-sm btn-ghost'} onClick={()=>setFilter(key)}>
-        {key==='all'?'All':key==='open'?'Open':'Done'}
-       </button>)}
-     </div>
-    }>
-     <form className="entry" onSubmit={e=>{e.preventDefault();addTask();}}>
-      <label className="sr-only" htmlFor="new-task">Add a task</label>
-      <input id="new-task" value={draft} onChange={e=>setDraft(e.target.value)} placeholder="What needs doing today?" maxLength={300}/>
-      <button type="button" className="btn-icon" aria-pressed={draftCritical}
-       aria-label={draftCritical?'Critical, tap to unset':'Mark as critical'}
-       title={roomForCritical||draftCritical?'Mark as critical':`Already ${MAX_CRITICAL} critical`}
-       disabled={!draftCritical&&!roomForCritical}
-       style={draftCritical?{color:'var(--accent)'}:undefined}
-       // Keeps the caret in the field, so enter still adds the task after starring it.
-       onMouseDown={e=>e.preventDefault()}
-       onClick={()=>setDraftCritical(v=>!v)}>
-       <Star size={16} fill={draftCritical?'currentColor':'none'}/>
-      </button>
-      <button type="submit" className="btn btn-primary btn-sm" disabled={busy||!draft.trim()}><Plus size={16}/>Add</button>
-     </form>
-     <p className="entry-hint">Enter adds it. Star it first to pin it to the dashboard.</p>
-     {shown.length===0
-      ? <Empty>{rest.length?'Nothing in this filter.':critical.length?'Everything today is starred as critical.':'Nothing on the list yet.'}</Empty>
-      : <div className="list">{shown.map(t=><TaskRow key={t.id} task={t} today={today} busy={busy} change={change} canStar={critical.length<MAX_CRITICAL}/>)}</div>}
+        <input
+         className="todo-input"
+         ref={element=>{if(element)inputs.current.set(index,element);else inputs.current.delete(index);}}
+         defaultValue={task?.title??''}
+         maxLength={300}
+         disabled={busy}
+         aria-label={task?`Task ${index+1}`:`Empty line ${index+1}`}
+         placeholder={index===tasks.length?'Type a task and press enter':''}
+         onKeyDown={e=>{
+          if(e.key!=='Enter')return;
+          e.preventDefault();
+          // A committed line re-renders, so the next row is focused from the effect;
+          // an unchanged line does not, so move the caret now.
+          if(commit(task,e.currentTarget.value))pendingFocus.current=index+1;
+          else inputs.current.get(index+1)?.focus();
+         }}
+         onBlur={e=>{if(!commit(task,e.currentTarget.value)&&task)e.currentTarget.value=task.title;}}/>
+
+        {task&&<>
+         <button type="button" className="btn-icon" aria-label={task.important?'Remove from critical':'Mark as critical'}
+          title={task.important||roomForCritical?'Critical':`Already ${MAX_CRITICAL} starred`}
+          disabled={busy||(!task.important&&!roomForCritical)}
+          style={task.important?{color:'var(--accent)'}:undefined}
+          onClick={()=>edit(task,'',t=>{t.important=!t.important;})}>
+          <Star size={15} fill={task.important?'currentColor':'none'}/>
+         </button>
+         <ConfirmButton label={`Delete ${task.title}`} confirmLabel="Delete" disabled={busy}
+          onConfirm={()=>edit(task,`Deleted task: ${task.title}`,t=>{t.deleted=true;})}>
+          <Trash2 size={15}/>
+         </ConfirmButton>
+        </>}
+       </li>;
+      })}
+     </ol>
+     <p className="entry-hint">Enter saves the line and moves to the next. Clearing a line keeps the task; use the bin to remove it.</p>
     </Card>
 
     <Card title={session?`Gym · ${session.name}`:'Gym · rest day'} action={

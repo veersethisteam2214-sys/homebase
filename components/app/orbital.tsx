@@ -2,7 +2,7 @@
 import {useMemo,useState} from 'react';
 import {Check,Flame,LayoutGrid} from 'lucide-react';
 import ChatPanel from './chat-panel';
-import {tasksFor,type State} from '../../lib/planner';
+import {clockZones,tasksFor,zoneName,type State} from '../../lib/planner';
 import {elapsed} from '../../lib/life';
 import {minutesUntil} from '../../lib/clock';
 import {sessionFor,sessionsThisWeek} from '../../lib/gym';
@@ -113,12 +113,23 @@ type Props={
  go:(view:View)=>void;
  onListView:()=>void;
  onAccent:(hex:string)=>void;
+ onZone:(id:string)=>void;
 };
 
-export default function Orbital({state,today,busy,go,onListView,onAccent}:Props){
+/** A zone the browser rejects must not take the dashboard down with it. */
+function partsIn(zone:string,at:number){
+ const options:Intl.DateTimeFormatOptions={hour:'2-digit',minute:'2-digit',hourCycle:'h23'};
+ try{return new Intl.DateTimeFormat('en-GB',{...options,timeZone:zone}).formatToParts(new Date(at));}
+ catch{return new Intl.DateTimeFormat('en-GB',{...options,timeZone:'Australia/Hobart'}).formatToParts(new Date(at));}
+}
+const readClock=(parts:Intl.DateTimeFormatPart[])=>
+ `${parts.find(p=>p.type==='hour')?.value}:${parts.find(p=>p.type==='minute')?.value}`;
+
+export default function Orbital({state,today,busy,go,onListView,onAccent,onZone}:Props){
  const now=useNow(1000);
  // Pointing at a node previews it in the core; clicking opens it. There is no in-between.
  const [peeked,setPeeked]=useState<SectionId|null>(null);
+ const [zoneOpen,setZoneOpen]=useState(false);
 
  const orbs=useMemo<Orb[]>(()=>sections.filter(s=>s.onDashboard).map(section=>{
   const base=orbFor(section.id,state,today);
@@ -126,9 +137,10 @@ export default function Orbital({state,today,busy,go,onListView,onAccent}:Props)
  }),[state,today]);
 
 
- const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Australia/Hobart',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(now));
+ const zone=state.settings?.clockZone??'Australia/Hobart';
+ const parts=partsIn(zone,now);
  const hour=Number(parts.find(p=>p.type==='hour')?.value??'0');
- const clock=`${parts.find(p=>p.type==='hour')?.value}:${parts.find(p=>p.type==='minute')?.value}`;
+ const clock=readClock(parts);
  const date=new Date(today+'T12:00:00Z').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'});
 
  const running=Boolean(state.streak?.startedAt);
@@ -169,7 +181,7 @@ export default function Orbital({state,today,busy,go,onListView,onAccent}:Props)
      <Flame size={14}/><span>{running?streakDays:'—'}</span>
     </button>
     <span className="orbital-save">{busy?'Saving':'Saved'}</span>
-    <ProfileMenu name={state.displayName??''} accent={state.settings?.accent??'#27514A'} onAccent={onAccent} go={go} onDark/>
+    <ProfileMenu name={state.displayName??''} monogram={state.settings?.monogram??'VS'} accent={state.settings?.accent??'#27514A'} onAccent={onAccent} go={go} onDark/>
    </div>
   </header>
 
@@ -229,10 +241,22 @@ export default function Orbital({state,today,busy,go,onListView,onAccent}:Props)
        <span className="orbital-core-detail">{selected.detail}</span>
       </div>
      : <div className="orbital-core-body">
-       <span className="orbital-core-kicker">Hobart</span>
+       <button type="button" className="orbital-core-kicker zone-trigger" aria-expanded={zoneOpen}
+        aria-label={`Clock zone: ${zoneName(zone)}. Change it`} onClick={()=>setZoneOpen(v=>!v)}>
+        {zoneName(zone)}
+       </button>
        <strong className="orbital-core-clock">{clock}</strong>
        <span className="orbital-core-detail">{dayTotal?`${dayDone} of ${dayTotal} done`:'Nothing planned yet'}</span>
       </div>}
+
+    {zoneOpen&&<div className="zone-menu" role="menu">
+     {clockZones.map(option=><button key={option.id} type="button" role="menuitem"
+      className={option.id===zone?'zone-item is-active':'zone-item'}
+      onClick={()=>{onZone(option.id);setZoneOpen(false);}}>
+      <span>{option.name}</span><b>{readClock(partsIn(option.id,now))}</b>
+     </button>)}
+     <p className="zone-note">Changes the clock only. Alarms and the day still run on Hobart time.</p>
+    </div>}
    </div>
    </div>
    <ChatPanel state={state} today={today}/>

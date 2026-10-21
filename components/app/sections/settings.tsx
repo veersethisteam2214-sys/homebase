@@ -1,7 +1,7 @@
 'use client';
 import {useState} from 'react';
 import {Bell,Check,Cloud,Download,HardDrive,Upload,Volume2} from 'lucide-react';
-import {accents,defaultSettings} from '../../../lib/planner';
+import {accents,clockZones,defaultSettings,zoneName} from '../../../lib/planner';
 import type {State} from '../../../lib/planner';
 import {ringtoneNames,ringtoneIds} from '../../../lib/clock';
 import {playRingtone,primeAudio} from '../../../lib/ringtones';
@@ -80,6 +80,19 @@ export default function SettingsSection({state,today,busy,storage,change,go,noti
        }}/>
       <p className="tiny">Shown on the dashboard. Saved when you click away.</p>
      </div>
+
+     <div className="field" style={{marginTop:18}}>
+      <label htmlFor="monogram">Monogram on the profile button</label>
+      <input id="monogram" defaultValue={settings.monogram} maxLength={3} disabled={busy}
+       style={{width:92,textTransform:'uppercase'}}
+       onBlur={e=>{
+        const value=e.target.value.trim().toUpperCase();
+        if(!/^[\p{L}\p{N}]{1,3}$/u.test(value)){e.target.value=settings.monogram;return;}
+        if(value===settings.monogram)return;
+        edit(`Set the monogram to ${value}`,{monogram:value});
+       }}/>
+      <p className="tiny">One to three letters.</p>
+     </div>
     </Card>
 
     <Card title="Appearance">
@@ -101,6 +114,18 @@ export default function SettingsSection({state,today,busy,storage,change,go,noti
        })}
       </div>
       <p className="tiny">Every tint, button and progress bar follows this colour.</p>
+     </div>
+
+     <div className="field" style={{marginTop:20}}>
+      <label htmlFor="clock-zone">Clock on the dashboard</label>
+      <select id="clock-zone" value={settings.clockZone} disabled={busy}
+       onChange={e=>edit(`Set the clock to ${zoneName(e.target.value)}`,{clockZone:e.target.value})}>
+       {clockZones.map(zone=><option key={zone.id} value={zone.id}>{zone.name}</option>)}
+      </select>
+      <p className="tiny">
+       Changes the time shown on the dashboard and which greeting you get. Alarms, reminders and the day
+       rollover still run on Hobart time, so travelling does not re-date your planner.
+      </p>
      </div>
     </Card>
 

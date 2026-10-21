@@ -1,5 +1,5 @@
 import type {State} from './planner';
-import {accentPattern} from './planner';
+import {accentPattern,zonePattern} from './planner';
 import {validGym} from './gym';
 import {validClock,validTime} from './clock';
 export function validState(value:unknown):value is State {
@@ -15,6 +15,9 @@ export function validState(value:unknown):value is State {
  if(state.gym!==undefined&&!validGym(state.gym))return false;
  if(state.clock!==undefined&&!validClock(state.clock))return false;
  if(state.quoteSeen!==undefined&&(!Array.isArray(state.quoteSeen)||state.quoteSeen.length>400||state.quoteSeen.some(d=>typeof d!=='string'||d.length>10)))return false;
- if(state.settings!==undefined){const s=state.settings;if(!s||typeof s!=='object'||typeof s.accent!=='string'||!accentPattern.test(s.accent)||!['light','dark'].includes(s.theme)||typeof s.quotePopup!=='boolean'||!Number.isFinite(s.volume)||s.volume<0||s.volume>1)return false;}
+ if(state.settings!==undefined){const s=state.settings;if(!s||typeof s!=='object'||typeof s.accent!=='string'||!accentPattern.test(s.accent)||!['light','dark'].includes(s.theme)||typeof s.quotePopup!=='boolean'||!Number.isFinite(s.volume)||s.volume<0||s.volume>1)return false;
+  // Both reach the page, so neither may carry anything but what it claims to be.
+  if(s.clockZone!==undefined&&(typeof s.clockZone!=='string'||s.clockZone.length>64||!zonePattern.test(s.clockZone)))return false;
+  if(s.monogram!==undefined&&(typeof s.monogram!=='string'||!/^[\p{L}\p{N}]{1,3}$/u.test(s.monogram)))return false;}
  return true;
 }

@@ -718,3 +718,53 @@ input[type=range]{accent-color:var(--accent)}
 .list-row input[type=checkbox]{width:18px;height:18px}
 
 .empty{padding:10px 0;line-height:1.6}
+
+/* ---------- numbered to-do list ---------- */
+.todo-list{display:flex;flex-direction:column}
+.todo-row{
+ display:grid;grid-template-columns:26px 20px minmax(0,1fr) auto;align-items:center;gap:11px;
+ border-bottom:1px solid var(--line);transition:background .12s;
+ margin:0 -10px;padding:0 10px;border-radius:8px;
+}
+.todo-row:last-child{border-bottom:0}
+.todo-row:hover,.todo-row:focus-within{background:var(--surface-sunk)}
+.todo-num{
+ font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink-mute);
+ text-align:right;letter-spacing:.04em;
+}
+.todo-blank{width:18px;height:18px;border-radius:5px;border:1.5px dashed var(--line);justify-self:center}
+.todo-input{
+ width:100%;min-width:0;min-height:44px;padding:10px 0;font-size:15px;
+ background:transparent;border:0;border-radius:0;color:var(--ink);
+}
+.todo-input:hover{background:transparent;border-color:transparent}
+.todo-input:focus{background:transparent;box-shadow:none;border-color:transparent;outline:none}
+.todo-input::placeholder{color:var(--ink-mute)}
+.todo-row .btn-icon{opacity:.5;transition:opacity .15s}
+.todo-row:hover .btn-icon,.todo-row:focus-within .btn-icon{opacity:1}
+.todo-row.is-done .todo-input{color:var(--ink-mute);text-decoration:line-through;text-decoration-color:var(--line-strong)}
+.todo-row.is-critical .todo-num{color:var(--accent-ink);font-weight:600}
+.todo-row.is-critical{box-shadow:inset 2px 0 0 var(--accent)}
+
+/* ---------- clock zone picker ---------- */
+.zone-trigger{
+ border:0;background:transparent;cursor:pointer;padding:2px 6px;border-radius:999px;
+ font:inherit;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);
+ transition:background .15s,color .15s;
+}
+.zone-trigger:hover{background:rgba(255,255,255,.08);color:var(--ink-0)}
+.zone-menu{
+ position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);z-index:6;
+ width:216px;padding:6px;border-radius:14px;
+ background:#141917;border:1px solid rgba(255,255,255,.14);box-shadow:var(--shadow-pop);
+}
+.zone-item{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
+ padding:9px 11px;border:0;border-radius:9px;cursor:pointer;
+ background:transparent;color:var(--ink-0);font-size:13px;text-align:left;
+}
+.zone-item:hover{background:rgba(255,255,255,.07)}
+.zone-item b{font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink-1)}
+.zone-item.is-active{background:color-mix(in srgb,var(--accent) 30%,transparent)}
+.zone-item.is-active b{color:var(--ink-0)}
+.zone-note{padding:8px 11px 4px;font-size:11px;line-height:1.5;color:var(--ink-2)}

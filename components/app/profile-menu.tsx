@@ -6,20 +6,15 @@ import type {View} from './types';
 
 type Props={
  name:string;
+ monogram:string;
  accent:string;
  onAccent:(hex:string)=>void;
  go:(view:View)=>void;
  onDark?:boolean;
 };
 
-function initials(name:string){
- const parts=name.trim().split(/\s+/).filter(Boolean);
- if(!parts.length)return 'HB';
- return (parts[0][0]+(parts[1]?.[0]??'')).toUpperCase();
-}
-
 /** The only chrome that survives on the orbital screen: settings, streak, history, colour. */
-export default function ProfileMenu({name,accent,onAccent,go,onDark}:Props){
+export default function ProfileMenu({name,monogram,accent,onAccent,go,onDark}:Props){
  const [open,setOpen]=useState(false);
  const [picking,setPicking]=useState(false);
  const wrap=useRef<HTMLDivElement>(null);
@@ -39,7 +34,7 @@ export default function ProfileMenu({name,accent,onAccent,go,onDark}:Props){
  return <div className="profile" ref={wrap}>
   <button type="button" className={onDark?'avatar avatar-dark':'avatar'} aria-haspopup="menu" aria-expanded={open}
    onClick={()=>setOpen(v=>!v)} title="Profile and settings">
-   {initials(name)}
+   {monogram||'VS'}
   </button>
   {open&&<div className="menu" role="menu">
    <div className="menu-head">

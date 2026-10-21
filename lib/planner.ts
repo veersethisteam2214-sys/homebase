@@ -8,7 +8,17 @@ export function capitalise(value:string){
 }
 export type ProjectNote = {id:string; text:string; at:string; pinned?:boolean};
 export type Project = {id:string; title:string; action:string; days:number[]; active:boolean; summary?:string; notes?:ProjectNote[]};
-export type AppSettings={accent:string;theme:'light'|'dark';quotePopup:boolean;volume:number};
+export type AppSettings={accent:string;theme:'light'|'dark';quotePopup:boolean;volume:number;clockZone:string;monogram:string};
+/** Offered by the clock on the dashboard. Any IANA zone is accepted when stored. */
+export const clockZones=[
+ {id:'Australia/Hobart',name:'Hobart'},
+ {id:'Australia/Sydney',name:'Sydney'},
+ {id:'Australia/Brisbane',name:'Brisbane'},
+ {id:'Australia/Perth',name:'Perth'},
+ {id:'Asia/Bangkok',name:'Thailand'},
+];
+export const zonePattern=/^[A-Za-z][A-Za-z_-]*\/[A-Za-z][A-Za-z_+-]*$/;
+export function zoneName(id:string){return clockZones.find(z=>z.id===id)?.name??id.split('/').pop()?.replace(/_/g,' ')??id;}
 /**
  * The highlight colours offered in the picker. All sit in the same darkness band so
  * white text stays readable on them and they hold up against the dark field. Stored
@@ -31,7 +41,9 @@ export const accents=[
 ];
 export const accentPattern=/^#[0-9a-f]{6}$/i;
 // The orbit is a dark field and the section pages share it, so there is one look.
-export function defaultSettings():AppSettings{return {accent:'#27514A',theme:'dark',quotePopup:true,volume:0.7};}
+export function defaultSettings():AppSettings{
+ return {accent:'#27514A',theme:'dark',quotePopup:true,volume:0.7,clockZone:'Australia/Hobart',monogram:'VS'};
+}
 export type State = {tasks:Task[]; projects:Project[]; goals:{id:string;title:string;progress:number}[]; routine:{id:string;title:string;time?:string}[]; checks:Record<string,string[]>; unlocked:string[]; assignments:Assignment[]; classes?:ClassEntry[]; displayName?:string; history:{id:string;time:string;text:string}[]; reminders:{id:string;title:string;time:string;enabled:boolean}[]; notes:Record<string,string>; termEnd:string; plannedDates?:string[]; lastPlanDate?:string; routinePresets?:import("./routine-presets").RoutinePreset[]; activeRoutinePresetId?:string; videos?:import("./life").Video[]; streak?:import("./life").Streak; motivation?:import("./life").Motivation; listRevision?:number; gym?:import("./gym").Gym; clock?:import("./clock").Clock; quoteSeen?:string[]; settings?:AppSettings};
 export const weekdays=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 export function dayKey(d=new Date()) {return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Hobart',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
