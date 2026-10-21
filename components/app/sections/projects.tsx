@@ -1,12 +1,21 @@
 'use client';
 import {useState} from 'react';
-import {ArrowRight,Pin,PinOff,Plus,Trash2} from 'lucide-react';
-import {capitalise,tasksFor,weekdays,type Project} from '../../../lib/planner';
+import {ArrowRight,Dot,Pin,PinOff,Plus,Trash2} from 'lucide-react';
+import {capitalise,tasksFor,weekdays,type Project,type ProjectNote} from '../../../lib/planner';
 import type {SectionProps} from '../types';
-import {Card,ConfirmButton,Empty,PageHead,Stat,Switch} from '../ui';
+import {Card,ConfirmButton,Empty,PageHead,Stat,Switch,Timeline,TimelineRow} from '../ui';
 
 const dayOrder=[1,2,3,4,5,6,0];
-const stamp=(iso:string)=>new Date(iso).toLocaleString('en-AU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+
+/** Notes sit on a timeline, so the gutter carries when it was written, over two lines. */
+const when=(iso:string)=>{
+ const at=new Date(iso);
+ return <>
+  {at.toLocaleDateString('en-AU',{day:'numeric',month:'short'})}
+  <br/>
+  {at.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false})}
+ </>;
+};
 
 function ProjectDetail({project,busy,change,onBack}:{project:Project;onBack:()=>void}&Pick<SectionProps,'busy'|'change'>){
  const [note,setNote]=useState('');
@@ -18,9 +27,22 @@ function ProjectDetail({project,busy,change,onBack}:{project:Project;onBack:()=>
   if(target)mutate(target);
  });
 
- const noteRow=(n:{id:string;text:string;at:string;pinned?:boolean})=><div key={n.id} className="list-row" style={{alignItems:'flex-start'}}>
-  <span className="grow" style={{whiteSpace:'pre-wrap'}}>{n.text}<br/><span className="tiny">{stamp(n.at)}</span></span>
-  <div className="row-actions" style={{opacity:1}}>
+ const addNote=()=>{
+  const text=note.trim();
+  if(!text)return;
+  edit(`Added a note to ${project.title}`,p=>{
+   p.notes=[{id:crypto.randomUUID(),text,at:new Date().toISOString()},...(p.notes??[])];
+  });
+  setNote('');
+ };
+
+ const noteRow=(n:ProjectNote)=><TimelineRow
+  key={n.id}
+  tone={n.pinned?'active':'plain'}
+  lead={when(n.at)}
+  marker={n.pinned?<Pin size={11}/>:null}
+  title={<span className="tl-note">{n.text}</span>}
+  trailing={<>
    <button type="button" className="btn-icon" aria-label={n.pinned?'Unpin note':'Pin as important'} disabled={busy}
     style={n.pinned?{color:'var(--accent)'}:undefined}
     onClick={()=>edit(n.pinned?'Unpinned a project note':'Pinned a project note',p=>{
@@ -33,8 +55,8 @@ function ProjectDetail({project,busy,change,onBack}:{project:Project;onBack:()=>
     onConfirm={()=>edit('Deleted a project note',p=>{p.notes=(p.notes??[]).filter(x=>x.id!==n.id);})}>
     <Trash2 size={16}/>
    </ConfirmButton>
-  </div>
- </div>;
+  </>}
+ />;
 
  return <div className="stack">
   <PageHead title={project.title} sub={project.active?'Active':'Paused'} back={onBack}>
@@ -48,25 +70,25 @@ function ProjectDetail({project,busy,change,onBack}:{project:Project;onBack:()=>
   <div className="split">
    <div className="main">
     <Card tone="lift" title="Important" action={<span className="tiny">{pinned.length} pinned</span>}>
-     {pinned.length===0?<Empty>Pin a note below to keep it at the top here.</Empty>:<div className="list">{pinned.map(noteRow)}</div>}
+     {pinned.length===0?<Empty>Pin a note below to keep it at the top here.</Empty>:<Timeline lead={62}>{pinned.map(noteRow)}</Timeline>}
     </Card>
 
     <Card title="Notes">
-     <form className="stack" style={{gap:10,marginBottom:14}} onSubmit={e=>{
-      e.preventDefault();
-      const text=note.trim();
-      if(!text)return;
-      edit(`Added a note to ${project.title}`,p=>{
-       p.notes=[{id:crypto.randomUUID(),text,at:new Date().toISOString()},...(p.notes??[])];
-      });
-      setNote('');
-     }}>
+     <form className="composer" onSubmit={e=>{e.preventDefault();addNote();}}>
       <label className="sr-only" htmlFor="project-note">New note</label>
       <textarea id="project-note" value={note} onChange={e=>setNote(e.target.value)} rows={3} maxLength={4000}
-       placeholder="Where this is up to, what is blocking it, what to do next"/>
-      <button type="submit" className="btn btn-primary" style={{alignSelf:'flex-start'}} disabled={busy||!note.trim()}><Plus size={17}/>Add note</button>
+       placeholder="Where this is up to, what is blocking it, what to do next"
+       onKeyDown={e=>{
+        if(e.key!=='Enter'||e.shiftKey)return;
+        e.preventDefault();
+        addNote();
+       }}/>
+      <div className="composer-foot">
+       <span className="entry-hint">Enter saves it. Shift + Enter starts a new line.</span>
+       <button type="submit" className="btn btn-primary btn-sm" disabled={busy||!note.trim()}><Plus size={16}/>Add note</button>
+      </div>
      </form>
-     {rest.length===0?<Empty>No notes yet.</Empty>:<div className="list">{rest.map(noteRow)}</div>}
+     {rest.length===0?<Empty>No notes yet.</Empty>:<Timeline lead={62}>{rest.map(noteRow)}</Timeline>}
     </Card>
    </div>
 
@@ -146,25 +168,30 @@ export default function ProjectsSection(props:SectionProps){
    </form>
   </Card>
 
-  {state.projects.length===0
-   ? <Card><Empty>No projects yet. Add the things you are actually building.</Empty></Card>
-   : <div className="sections">
-     {state.projects.map(project=>{
-      const notes=project.notes??[];
-      return <button key={project.id} type="button" className="section-card" onClick={()=>setOpenId(project.id)}>
-       <div className="section-card-top">
-        <h2>{project.title}</h2>
-        <span className={project.active?'chip chip-accent':'chip'}>{project.active?'Active':'Paused'}</span>
-       </div>
-       {project.summary&&<p className="tiny" style={{lineHeight:1.5}}>{project.summary}</p>}
-       <ul className="section-lines">
-        <li><span>Recurring action</span><b style={{textAlign:'right'}}>{project.action||'—'}</b></li>
-        <li><span>Days</span><b>{project.days.length?dayOrder.filter(d=>project.days.includes(d)).map(d=>weekdays[d]).join(', '):'None'}</b></li>
-        <li><span>Notes</span><b>{notes.length}{notes.some(n=>n.pinned)?` · ${notes.filter(n=>n.pinned).length} pinned`:''}</b></li>
-       </ul>
-       <span className="section-foot">Open project <ArrowRight size={15}/></span>
-      </button>;
-     })}
-    </div>}
+  <Card tone="lift" title="Everything you are building" action={<span className="tiny">Open one to write notes on it</span>}>
+   {state.projects.length===0
+    ? <Empty>No projects yet. Add the things you are actually building.</Empty>
+    : <Timeline lead={34}>
+      {state.projects.map((project,index)=>{
+       const notes=project.notes??[];
+       const pinned=notes.filter(n=>n.pinned).length;
+       const days=project.days.length?dayOrder.filter(d=>project.days.includes(d)).map(d=>weekdays[d]).join(' '):'No days set';
+       return <TimelineRow
+        key={project.id}
+        tone={project.active?'active':'plain'}
+        lead={String(index+1).padStart(2,'0')}
+        marker={project.active?<Dot size={11}/>:null}
+        title={project.title}
+        meta={<>{project.action||'No recurring action'} &middot; {days} &middot; {notes.length===1?'1 note':`${notes.length} notes`}{pinned?` · ${pinned} pinned`:''}</>}
+        trailing={<>
+         {!project.active&&<span className="chip">Paused</span>}
+         <ArrowRight size={16} style={{color:'var(--ink-mute)'}}/>
+        </>}
+        openLabel={`Open ${project.title}`}
+        onOpen={()=>setOpenId(project.id)}
+       />;
+      })}
+     </Timeline>}
+  </Card>
  </div>;
 }

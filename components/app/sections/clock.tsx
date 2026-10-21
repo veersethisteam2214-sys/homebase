@@ -5,7 +5,7 @@ import {weekdays} from '../../../lib/planner';
 import {describeDays,formatCountdown,minutesUntil,ringtoneIds,ringtoneNames,validTime,type RingtoneId} from '../../../lib/clock';
 import {audioReady,audioSupported,playRingtone,primeAudio} from '../../../lib/ringtones';
 import type {SectionProps} from '../types';
-import {Card,ConfirmButton,Empty,PageHead,Stat,Switch,useNow} from '../ui';
+import {Card,ConfirmButton,Empty,PageHead,Stat,Switch,Timeline,TimelineRow,useNow} from '../ui';
 
 const dayOrder=[1,2,3,4,5,6,0];
 
@@ -64,30 +64,34 @@ export default function ClockSection({state,busy,change,go,notify}:SectionProps)
     <Card tone="lift" title="Alarms">
      {clock.alarms.length===0
       ? <Empty>No alarms yet. Add one below.</Empty>
-      : <div className="list">
+      : <Timeline lead={62}>
         {[...clock.alarms].sort((a,b)=>a.time.localeCompare(b.time)).map(alarm=>{
          const until=minutesUntil(alarm);
-         return <div key={alarm.id} className="list-row" style={{alignItems:'center'}}>
-          <div className="grow">
-           <span className="alarm-time" style={alarm.enabled?undefined:{color:'var(--ink-mute)'}}>{alarm.time}</span>
-           <div className="tiny" style={{marginTop:2}}>
-            {alarm.label?`${alarm.label} · `:''}{describeDays(alarm.days)} &middot; {ringtoneNames[alarm.ringtone]}
-            {alarm.enabled&&until!==null?` · in ${until<60?`${until} min`:`${Math.floor(until/60)}h ${until%60}m`}`:''}
-           </div>
-          </div>
-          <button type="button" className="btn-icon" aria-label={`Preview ${ringtoneNames[alarm.ringtone]}`} onClick={()=>preview(alarm.ringtone)}><Play size={15}/></button>
-          <Switch checked={alarm.enabled} label={`Alarm at ${alarm.time}`} disabled={busy}
-           onChange={()=>change(`${alarm.enabled?'Turned off':'Turned on'} the ${alarm.time} alarm`,s=>{
-            const target=s.clock?.alarms.find(a=>a.id===alarm.id);
-            if(target)target.enabled=!target.enabled;
-           })}/>
-          <ConfirmButton label={`Delete the ${alarm.time} alarm`} confirmLabel="Delete" disabled={busy}
-           onConfirm={()=>change(`Deleted the ${alarm.time} alarm`,s=>{if(s.clock)s.clock.alarms=s.clock.alarms.filter(a=>a.id!==alarm.id);})}>
-           <Trash2 size={16}/>
-          </ConfirmButton>
-         </div>;
+         return <TimelineRow
+          key={alarm.id}
+          tone={alarm.enabled?'active':'plain'}
+          lead={<span className="tl-time">{alarm.time}</span>}
+          marker={alarm.enabled?<Bell size={11}/>:null}
+          title={alarm.label||describeDays(alarm.days)}
+          meta={<>
+           {alarm.label?`${describeDays(alarm.days)} · `:''}{ringtoneNames[alarm.ringtone]}
+           {alarm.enabled&&until!==null?` · in ${until<60?`${until} min`:`${Math.floor(until/60)}h ${until%60}m`}`:''}
+          </>}
+          trailing={<>
+           <button type="button" className="btn-icon" aria-label={`Preview ${ringtoneNames[alarm.ringtone]}`} onClick={()=>preview(alarm.ringtone)}><Play size={15}/></button>
+           <Switch checked={alarm.enabled} label={`Alarm at ${alarm.time}`} disabled={busy}
+            onChange={()=>change(`${alarm.enabled?'Turned off':'Turned on'} the ${alarm.time} alarm`,s=>{
+             const target=s.clock?.alarms.find(a=>a.id===alarm.id);
+             if(target)target.enabled=!target.enabled;
+            })}/>
+           <ConfirmButton label={`Delete the ${alarm.time} alarm`} confirmLabel="Delete" disabled={busy}
+            onConfirm={()=>change(`Deleted the ${alarm.time} alarm`,s=>{if(s.clock)s.clock.alarms=s.clock.alarms.filter(a=>a.id!==alarm.id);})}>
+            <Trash2 size={16}/>
+           </ConfirmButton>
+          </>}
+         />;
         })}
-       </div>}
+       </Timeline>}
     </Card>
 
     <Card title="Add an alarm">

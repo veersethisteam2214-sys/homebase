@@ -102,3 +102,35 @@ export function ConfirmButton({label,confirmLabel,onConfirm,disabled,children}:{
 }
 
 export function Empty({children}:{children:ReactNode}){return <p className="empty">{children}</p>;}
+
+/**
+ * The reading format the morning routine uses, shared so every section looks the same:
+ * something small in a left gutter, a marker on a rail, the thing itself, then actions.
+ */
+export function Timeline({lead,children}:{lead?:number;children:ReactNode}){
+ return <ol className="tl" style={lead?{['--tl-lead' as string]:`${lead}px`}:undefined}>{children}</ol>;
+}
+
+export function TimelineRow({lead,marker,title,meta,trailing,tone='plain',onOpen,openLabel}:{
+ lead?:ReactNode;
+ marker?:ReactNode;
+ title:ReactNode;
+ meta?:ReactNode;
+ trailing?:ReactNode;
+ tone?:'plain'|'done'|'active'|'warn';
+ onOpen?:()=>void;
+ openLabel?:string;
+}){
+ const body=<>
+  <span className="tl-title">{title}</span>
+  {meta&&<span className="tl-meta">{meta}</span>}
+ </>;
+ return <li className={`tl-row is-${tone}`}>
+  <span className="tl-lead">{lead}</span>
+  <span className="tl-mark"><span className="tl-dot">{marker}</span></span>
+  {onOpen
+   ? <button type="button" className="tl-main is-open" onClick={onOpen} aria-label={openLabel}>{body}</button>
+   : <span className="tl-main">{body}</span>}
+  {trailing&&<span className="tl-trail">{trailing}</span>}
+ </li>;
+}

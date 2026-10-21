@@ -1,10 +1,10 @@
 'use client';
 import {useState} from 'react';
-import {Copy,Pause,Play,Plus,Send,Smartphone,Trash2} from 'lucide-react';
+import {Bell,Copy,Pause,Play,Plus,Quote,Send,Smartphone,Trash2} from 'lucide-react';
 import {nextNudge} from '../../../lib/life';
-import type {State} from '../../../lib/planner';
+import {capitalise,type State} from '../../../lib/planner';
 import type {SectionProps} from '../types';
-import {Card,ConfirmButton,Empty,Modal,PageHead,Switch} from '../ui';
+import {Card,ConfirmButton,Empty,Modal,PageHead,Switch,Timeline,TimelineRow} from '../ui';
 
 export default function RemindersSection({state,busy,change,adopt,go,notify}:SectionProps){
  const [draft,setDraft]=useState({title:'',time:'09:00'});
@@ -21,6 +21,13 @@ export default function RemindersSection({state,busy,change,adopt,go,notify}:Sec
 
  const motivation=state.motivation;
  const editMotivation=(label:string,mutate:(m:NonNullable<State['motivation']>)=>void)=>change(label,s=>{if(s.motivation)mutate(s.motivation);});
+
+ const addPhrase=()=>{
+  const text=capitalise(phrase);
+  if(!text)return;
+  editMotivation('Added a motivation phrase',m=>{m.phrases.push({id:crypto.randomUUID(),text});});
+  setPhrase('');
+ };
 
  const sendTest=async()=>{
   setSending(true);
@@ -40,26 +47,32 @@ export default function RemindersSection({state,busy,change,adopt,go,notify}:Sec
   <div className="split">
    <div className="main">
     <Card tone="lift" title="Timed reminders">
-     {state.reminders.length===0?<Empty>No reminders yet.</Empty>:<div className="list">
-      {[...state.reminders].sort((a,b)=>a.time.localeCompare(b.time)).map(reminder=><div key={reminder.id} className="list-row">
-       <span style={{width:56,flex:'none',fontWeight:500,fontVariantNumeric:'tabular-nums'}}>{reminder.time}</span>
-       <span className="grow">{reminder.title}</span>
-       <Switch checked={reminder.enabled} label={`${reminder.title} enabled`} disabled={busy}
-        onChange={()=>change(`${reminder.enabled?'Turned off':'Turned on'} reminder: ${reminder.title}`,s=>{
-         const target=s.reminders.find(r=>r.id===reminder.id);
-         if(target)target.enabled=!target.enabled;
-        })}/>
-       <ConfirmButton label={`Delete reminder ${reminder.title}`} confirmLabel="Delete" disabled={busy}
-        onConfirm={()=>change(`Deleted reminder: ${reminder.title}`,s=>{s.reminders=s.reminders.filter(r=>r.id!==reminder.id);})}>
-        <Trash2 size={16}/>
-       </ConfirmButton>
-      </div>)}
-     </div>}
+     {state.reminders.length===0?<Empty>No reminders yet.</Empty>:<Timeline lead={52}>
+      {[...state.reminders].sort((a,b)=>a.time.localeCompare(b.time)).map(reminder=><TimelineRow
+       key={reminder.id}
+       tone={reminder.enabled?'active':'plain'}
+       lead={reminder.time}
+       marker={reminder.enabled?<Bell size={11}/>:null}
+       title={reminder.title}
+       meta={reminder.enabled?'On':'Off'}
+       trailing={<>
+        <Switch checked={reminder.enabled} label={`${reminder.title} enabled`} disabled={busy}
+         onChange={()=>change(`${reminder.enabled?'Turned off':'Turned on'} reminder: ${reminder.title}`,s=>{
+          const target=s.reminders.find(r=>r.id===reminder.id);
+          if(target)target.enabled=!target.enabled;
+         })}/>
+        <ConfirmButton label={`Delete reminder ${reminder.title}`} confirmLabel="Delete" disabled={busy}
+         onConfirm={()=>change(`Deleted reminder: ${reminder.title}`,s=>{s.reminders=s.reminders.filter(r=>r.id!==reminder.id);})}>
+         <Trash2 size={16}/>
+        </ConfirmButton>
+       </>}
+      />)}
+     </Timeline>}
 
      <div style={{marginTop:16,paddingTop:14,borderTop:'1px solid var(--line)'}}>
      <form className="entry" onSubmit={e=>{
       e.preventDefault();
-      const title=draft.title.trim();
+      const title=capitalise(draft.title);
       if(!title)return;
       change(`Added reminder: ${title}`,s=>{s.reminders.push({id:crypto.randomUUID(),title,time:draft.time,enabled:true});});
       setDraft({title:'',time:draft.time});
@@ -116,30 +129,35 @@ export default function RemindersSection({state,busy,change,adopt,go,notify}:Sec
      </form>
 
      <div className="eyebrow" style={{marginBottom:8}}>Your phrases</div>
-     {motivation.phrases.length===0?<Empty>No phrases yet.</Empty>:<div className="list">
-      {motivation.phrases.map((p,i)=><div key={p.id} className="list-row" style={{alignItems:'flex-start'}}>
-       <span className="tiny" style={{width:24,flex:'none',paddingTop:2}}>{String(i+1).padStart(2,'0')}</span>
-       <span className="grow" style={{fontFamily:'var(--serif)',fontSize:16}}>{p.text}</span>
-       <div className="row-actions" style={{opacity:1}}>
+     {motivation.phrases.length===0?<Empty>No phrases yet.</Empty>:<Timeline lead={34}>
+      {motivation.phrases.map((p,i)=><TimelineRow
+       key={p.id}
+       lead={String(i+1).padStart(2,'0')}
+       marker={<Quote size={10}/>}
+       title={<span className="tl-quote">{p.text}</span>}
+       trailing={<>
         <button type="button" className="btn-icon" aria-label={`Preview phrase ${i+1}`} onClick={()=>setPreviewing(p.text)}><Play size={15}/></button>
         <ConfirmButton label={`Delete phrase ${i+1}`} confirmLabel="Delete" disabled={busy}
          onConfirm={()=>editMotivation('Removed a motivation phrase',m=>{m.phrases=m.phrases.filter(x=>x.id!==p.id);})}>
          <Trash2 size={15}/>
         </ConfirmButton>
-       </div>
-      </div>)}
-     </div>}
+       </>}
+      />)}
+     </Timeline>}
 
-     <form className="stack" style={{gap:10,marginTop:14}} onSubmit={e=>{
-      e.preventDefault();
-      const text=phrase.trim();
-      if(!text)return;
-      editMotivation('Added a motivation phrase',m=>{m.phrases.push({id:crypto.randomUUID(),text});});
-      setPhrase('');
-     }}>
+     <form className="composer" style={{marginTop:14,marginBottom:0}} onSubmit={e=>{e.preventDefault();addPhrase();}}>
       <label className="sr-only" htmlFor="new-phrase">New phrase</label>
-      <textarea id="new-phrase" value={phrase} onChange={e=>setPhrase(e.target.value)} rows={2} maxLength={1500} placeholder="Words you want to be reminded of"/>
-      <button type="submit" className="btn btn-primary" style={{alignSelf:'flex-start'}} disabled={busy||!phrase.trim()}><Plus size={17}/>Add phrase</button>
+      <textarea id="new-phrase" value={phrase} onChange={e=>setPhrase(e.target.value)} rows={2} maxLength={1500}
+       placeholder="Words you want to be reminded of"
+       onKeyDown={e=>{
+        if(e.key!=='Enter'||e.shiftKey)return;
+        e.preventDefault();
+        addPhrase();
+       }}/>
+      <div className="composer-foot">
+       <span className="entry-hint">Enter saves it. Shift + Enter starts a new line.</span>
+       <button type="submit" className="btn btn-primary btn-sm" disabled={busy||!phrase.trim()}><Plus size={16}/>Add phrase</button>
+      </div>
      </form>
     </Card>}
    </div>

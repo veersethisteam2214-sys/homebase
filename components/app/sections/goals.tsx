@@ -3,7 +3,7 @@ import {useState} from 'react';
 import {Check,Plus,Trash2} from 'lucide-react';
 import {capitalise} from '../../../lib/planner';
 import type {SectionProps} from '../types';
-import {Bar,Card,ConfirmButton,Empty,PageHead,Stat} from '../ui';
+import {Bar,Card,ConfirmButton,Empty,PageHead,Stat,Timeline,TimelineRow} from '../ui';
 
 export default function GoalsSection({state,busy,change,go,notify}:SectionProps){
  const [draft,setDraft]=useState('');
@@ -40,43 +40,44 @@ export default function GoalsSection({state,busy,change,go,notify}:SectionProps)
    </form>
   </Card>
 
-  {goals.length===0
-   ? <Card><Empty>No goals yet. Add the handful of things this period is actually for.</Empty></Card>
-   : <div className="sections">
-     {goals.map(goal=><section key={goal.id} className={goal.progress>=100?'card card-accent':'card'}>
-      <div className="card-head">
-       <div style={{minWidth:0,flex:'1 1 auto'}}>
+  <Card tone="lift" title="What this period is for" action={<span className="tiny">Drag a bar to move a goal along</span>}>
+   {goals.length===0
+    ? <Empty>No goals yet. Add the handful of things this period is actually for.</Empty>
+    : <Timeline lead={48}>
+      {goals.map(goal=><TimelineRow
+       key={goal.id}
+       tone={goal.progress>=100?'done':goal.progress>0?'active':'plain'}
+       lead={`${goal.progress}%`}
+       marker={goal.progress>=100?<Check size={12}/>:null}
+       title={<>
         <label className="sr-only" htmlFor={`goal-${goal.id}`}>Goal name</label>
-        <input id={`goal-${goal.id}`} defaultValue={goal.title} maxLength={200} disabled={busy}
-         style={{background:'transparent',border:0,padding:0,minHeight:0,fontSize:16,fontWeight:600,letterSpacing:'-.01em'}}
+        <input id={`goal-${goal.id}`} className="tl-edit" defaultValue={goal.title} maxLength={200} disabled={busy}
          onBlur={e=>{
-          const title=e.target.value.trim();
+          const title=capitalise(e.target.value);
           if(!title){e.target.value=goal.title;return;}
-          if(title===goal.title)return;
+          if(title===goal.title){e.target.value=title;return;}
           change(`Renamed goal to ${title}`,s=>{const target=s.goals.find(g=>g.id===goal.id);if(target)target.title=title;});
-         }}/>
-       </div>
-       <ConfirmButton label={`Delete goal ${goal.title}`} confirmLabel="Delete" disabled={busy}
-        onConfirm={()=>change(`Deleted goal: ${goal.title}`,s=>{s.goals=s.goals.filter(g=>g.id!==goal.id);})}>
-        <Trash2 size={16}/>
-       </ConfirmButton>
-      </div>
-
-      <div className="spread" style={{marginBottom:8}}>
-       <span className="tiny">Progress</span>
-       <strong className="num" style={{fontSize:20,letterSpacing:'-.02em'}}>{goal.progress}%</strong>
-      </div>
-      <Bar value={goal.progress}/>
-
-      <div className="row" style={{marginTop:14,gap:12}}>
-       <label className="sr-only" htmlFor={`range-${goal.id}`}>Progress for {goal.title}</label>
-       <input id={`range-${goal.id}`} type="range" min={0} max={100} step={5} value={goal.progress} disabled={busy}
-        style={{flex:'1 1 auto'}} onChange={e=>setProgress(goal.id,Number(e.target.value))}/>
-       {goal.progress<100&&<button type="button" className="btn btn-sm btn-soft" disabled={busy} onClick={()=>{
-        change(`Completed goal: ${goal.title}`,s=>{const target=s.goals.find(g=>g.id===goal.id);if(target)target.progress=100;});
-       }}><Check size={15}/>Done</button>}
-      </div>
-     </section>)}
-    </div>}
+         }}
+         onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();}}/>
+       </>}
+       meta={<span className="goal-track">
+        <Bar value={goal.progress}/>
+        <label className="sr-only" htmlFor={`range-${goal.id}`}>Progress for {goal.title}</label>
+        <input id={`range-${goal.id}`} type="range" min={0} max={100} step={5} value={goal.progress} disabled={busy}
+         onChange={e=>setProgress(goal.id,Number(e.target.value))}/>
+       </span>}
+       trailing={<>
+        {goal.progress<100&&<button type="button" className="btn btn-sm btn-soft" disabled={busy}
+         onClick={()=>change(`Completed goal: ${goal.title}`,s=>{const target=s.goals.find(g=>g.id===goal.id);if(target)target.progress=100;})}>
+         <Check size={14}/>Done
+        </button>}
+        <ConfirmButton label={`Delete goal ${goal.title}`} confirmLabel="Delete" disabled={busy}
+         onConfirm={()=>change(`Deleted goal: ${goal.title}`,s=>{s.goals=s.goals.filter(g=>g.id!==goal.id);})}>
+         <Trash2 size={16}/>
+        </ConfirmButton>
+       </>}
+      />)}
+     </Timeline>}
+  </Card>
  </div>;
 }

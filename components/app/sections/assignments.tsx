@@ -1,12 +1,31 @@
 'use client';
 import {useState} from 'react';
-import {Plus,Trash2} from 'lucide-react';
+import {Check,Dot,Plus,Trash2} from 'lucide-react';
 import {weekdays} from '../../../lib/planner';
 import type {SectionProps} from '../types';
-import {Card,ConfirmButton,Empty,PageHead,Stat} from '../ui';
+import {Card,ConfirmButton,Empty,PageHead,Stat,Timeline,TimelineRow} from '../ui';
 
 const statuses=[{value:'',label:'Outstanding'},{value:'submitted',label:'Submitted'},{value:'graded',label:'Graded'}];
 const longDate=(date:string)=>new Date(date+'T12:00:00Z').toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+
+/** The gutter of a due date: the day over the month, so the column scans vertically. */
+const dayAndMonth=(date:string)=>{
+ const at=new Date(date+'T12:00:00Z');
+ return <>
+  <strong>{at.toLocaleDateString('en-AU',{day:'numeric',timeZone:'UTC'})}</strong>
+  <br/>
+  {at.toLocaleDateString('en-AU',{month:'short',timeZone:'UTC'})}
+ </>;
+};
+
+const daysBetween=(from:string,to:string)=>Math.round((Date.parse(`${to}T12:00:00Z`)-Date.parse(`${from}T12:00:00Z`))/86400000);
+
+const dueWord=(days:number)=>{
+ if(days<0)return `${Math.abs(days)} day${Math.abs(days)===1?'':'s'} overdue`;
+ if(days===0)return 'Due today';
+ if(days===1)return 'Due tomorrow';
+ return `Due in ${days} days`;
+};
 
 export default function AssignmentsSection({state,today,busy,change,go,notify}:SectionProps){
  const [draft,setDraft]=useState({unit:'',title:'',date:'',weight:'',format:''});
@@ -28,40 +47,41 @@ export default function AssignmentsSection({state,today,busy,change,go,notify}:S
   </div>
 
   <Card tone="lift" title="Every assessment" action={<span className="tiny">Prep tasks appear seven and three days before each due date</span>}>
-   {sorted.length===0?<Empty>Nothing recorded yet.</Empty>:<div className="scroll-x">
-    <table className="table">
-     <thead><tr>
-      <th>Assessment</th><th style={{width:110}}>Unit</th><th style={{width:80}}>Weight</th><th style={{width:120}}>Due</th><th style={{width:150}}>Status</th><th style={{width:46}}/>
-     </tr></thead>
-     <tbody>
-      {sorted.map(a=>{
-       const overdue=!['submitted','graded'].includes(a.status)&&a.date<today;
-       return <tr key={a.id}>
-        <td style={{fontWeight:500}}>{a.title}{a.format?<><br/><span className="tiny">{a.format}</span></>:null}</td>
-        <td>{a.unit}</td>
-        <td className="num">{a.weight||'—'}</td>
-        <td className="num">{longDate(a.date)}{overdue&&<><br/><span className="chip chip-warn" style={{marginTop:4}}>Overdue</span></>}</td>
-        <td>
-         <label className="sr-only" htmlFor={`status-${a.id}`}>Status for {a.title}</label>
-         <select id={`status-${a.id}`} value={statuses.some(s=>s.value===a.status)?a.status:''} disabled={busy}
-          onChange={e=>change(`Marked ${a.title} as ${statuses.find(s=>s.value===e.target.value)?.label.toLowerCase()}`,s=>{
-           const target=s.assignments.find(x=>x.id===a.id);
-           if(target)target.status=e.target.value;
-          })}>
-          {statuses.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
-         </select>
-        </td>
-        <td style={{textAlign:'right'}}>
-         <ConfirmButton label={`Delete ${a.title}`} confirmLabel="Delete" disabled={busy}
-          onConfirm={()=>change(`Deleted assessment: ${a.title}`,s=>{s.assignments=s.assignments.filter(x=>x.id!==a.id);})}>
-          <Trash2 size={16}/>
-         </ConfirmButton>
-        </td>
-       </tr>;
-      })}
-     </tbody>
-    </table>
-   </div>}
+   {sorted.length===0?<Empty>Nothing recorded yet.</Empty>:<Timeline lead={46}>
+    {sorted.map(a=>{
+     const done=['submitted','graded'].includes(a.status);
+     const away=daysBetween(today,a.date);
+     const overdue=!done&&away<0;
+     return <TimelineRow
+      key={a.id}
+      tone={done?'done':overdue?'warn':away<=7?'active':'plain'}
+      lead={dayAndMonth(a.date)}
+      marker={done?<Check size={12}/>:null}
+      title={a.title}
+      meta={<>
+       {a.unit}
+       {a.weight?` · ${a.weight}`:''}
+       {a.format?` · ${a.format}`:''}
+       {' · '}
+       {done?statuses.find(s=>s.value===a.status)?.label:dueWord(away)}
+      </>}
+      trailing={<>
+       <label className="sr-only" htmlFor={`status-${a.id}`}>Status for {a.title}</label>
+       <select id={`status-${a.id}`} className="tl-select" value={statuses.some(s=>s.value===a.status)?a.status:''} disabled={busy}
+        onChange={e=>change(`Marked ${a.title} as ${statuses.find(s=>s.value===e.target.value)?.label.toLowerCase()}`,s=>{
+         const target=s.assignments.find(x=>x.id===a.id);
+         if(target)target.status=e.target.value;
+        })}>
+        {statuses.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
+       </select>
+       <ConfirmButton label={`Delete ${a.title}`} confirmLabel="Delete" disabled={busy}
+        onConfirm={()=>change(`Deleted assessment: ${a.title}`,s=>{s.assignments=s.assignments.filter(x=>x.id!==a.id);})}>
+        <Trash2 size={16}/>
+       </ConfirmButton>
+      </>}
+     />;
+    })}
+   </Timeline>}
   </Card>
 
   <div className="split">
@@ -93,21 +113,22 @@ export default function AssignmentsSection({state,today,busy,change,go,notify}:S
 
    <div className="rail">
     <Card eyebrow="Weekly timetable">
-     {classes.length===0?<Empty>No classes recorded.</Empty>:<div className="stack" style={{gap:11}}>
+     {classes.length===0?<Empty>No classes recorded.</Empty>:<Timeline lead={54}>
       {[...classes].sort((a,b)=>weekdays.indexOf(a.day)-weekdays.indexOf(b.day)||a.start.localeCompare(b.start)).map((c,i)=>
-       <div key={`${c.day}-${c.start}-${c.unit}-${i}`} className="spread" style={{alignItems:'flex-start',borderTop:i?'1px solid var(--line)':'0',paddingTop:i?11:0}}>
-        <span style={{minWidth:0}}>
-         <strong style={{fontWeight:500}}>{c.day} {c.start}</strong><br/>
-         <span className="tiny">{c.unit} {c.kind}{c.location?` · ${c.location}`:''}</span>
-        </span>
-        <ConfirmButton label={`Delete ${c.unit} on ${c.day}`} confirmLabel="Delete" disabled={busy}
+       <TimelineRow
+        key={`${c.day}-${c.start}-${c.unit}-${i}`}
+        lead={<><strong>{c.day}</strong><br/>{c.start}</>}
+        marker={<Dot size={11}/>}
+        title={c.unit}
+        meta={<>{c.kind} &middot; {c.start}&ndash;{c.end}{c.location?` · ${c.location}`:''}</>}
+        trailing={<ConfirmButton label={`Delete ${c.unit} on ${c.day}`} confirmLabel="Delete" disabled={busy}
          onConfirm={()=>change(`Removed a timetable entry: ${c.unit} ${c.day}`,s=>{
           s.classes=(s.classes??[]).filter(x=>!(x.day===c.day&&x.start===c.start&&x.unit===c.unit));
          })}>
          <Trash2 size={15}/>
-        </ConfirmButton>
-       </div>)}
-     </div>}
+        </ConfirmButton>}
+       />)}
+     </Timeline>}
 
      <form className="stack" style={{gap:10,marginTop:16,paddingTop:14,borderTop:'1px solid var(--line)'}} onSubmit={e=>{
       e.preventDefault();
@@ -119,7 +140,7 @@ export default function AssignmentsSection({state,today,busy,change,go,notify}:S
       setEntry({...entry,unit:'',location:''});
      }}>
       <div className="field"><label htmlFor="c-unit">Add a class</label><input id="c-unit" value={entry.unit} onChange={e=>setEntry({...entry,unit:e.target.value})} placeholder="Unit name" maxLength={120}/></div>
-      <div className="row">
+      <div className="row row-wrap">
        <label className="sr-only" htmlFor="c-day">Day</label>
        <select id="c-day" value={entry.day} onChange={e=>setEntry({...entry,day:e.target.value})}>
         {[1,2,3,4,5,6,0].map(d=><option key={d} value={weekdays[d]}>{weekdays[d]}</option>)}
@@ -129,7 +150,7 @@ export default function AssignmentsSection({state,today,busy,change,go,notify}:S
        <label className="sr-only" htmlFor="c-end">End</label>
        <input id="c-end" type="time" value={entry.end} onChange={e=>setEntry({...entry,end:e.target.value})}/>
       </div>
-      <div className="row">
+      <div className="row row-wrap">
        <label className="sr-only" htmlFor="c-kind">Kind</label>
        <input id="c-kind" value={entry.kind} onChange={e=>setEntry({...entry,kind:e.target.value})} placeholder="Lecture" maxLength={40}/>
        <label className="sr-only" htmlFor="c-where">Location</label>
