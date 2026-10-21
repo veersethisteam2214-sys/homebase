@@ -1,6 +1,11 @@
 export type Assignment={id:string;date:string;unit:string;title:string;weight:string;format:string;notes:string;status:string};
 export type ClassEntry={day:string;start:string;end:string;unit:string;kind:string;location:string;note:string};
 export type Task = {id:string; title:string; date:string; project?:string; done:boolean; deleted?:boolean; source?:string; important?:boolean};
+/** Trims and raises the first character, so a list of steps reads consistently. */
+export function capitalise(value:string){
+ const trimmed=value.trim();
+ return trimmed?trimmed[0].toUpperCase()+trimmed.slice(1):trimmed;
+}
 export type ProjectNote = {id:string; text:string; at:string; pinned?:boolean};
 export type Project = {id:string; title:string; action:string; days:number[]; active:boolean; summary?:string; notes?:ProjectNote[]};
 export type AppSettings={accent:string;theme:'light'|'dark';quotePopup:boolean;volume:number};
