@@ -1,10 +1,10 @@
 'use client';
 import {useState} from 'react';
-import {Pencil,Plus,Trash2,Trophy} from 'lucide-react';
+import {Check,Dot,Pencil,Plus,Trash2,Trophy} from 'lucide-react';
 import {weekdays} from '../../../lib/planner';
 import {entryFor,lastWeightFor,recordBest,sessionFor,sessionsThisWeek,startEntry,toggleExercise,weekDates,weekOrder} from '../../../lib/gym';
 import type {SectionProps} from '../types';
-import {Bar,Card,ConfirmButton,Empty,Modal,PageHead} from '../ui';
+import {Bar,Card,ConfirmButton,Empty,Modal,PageHead,Timeline,TimelineRow} from '../ui';
 
 const shortDate=(date:string)=>new Date(date+'T12:00:00Z').toLocaleDateString('en-AU',{day:'numeric',month:'short',timeZone:'UTC'});
 
@@ -67,28 +67,26 @@ export default function GymSection({state,today,busy,change,go,notify}:SectionPr
       ? <Empty>Nothing scheduled today. Assign a session to this weekday above, or rest.</Empty>
       : session.exercises.length===0
        ? <Empty>This session has no exercises yet. Add them in edit split.</Empty>
-       : <div className="scroll-x">
-         <table className="table">
-          <thead><tr>
-           <th>Exercise</th><th style={{width:80}}>Sets</th><th style={{width:90}}>Target</th><th style={{width:100}}>Last time</th><th style={{width:60,textAlign:'right'}}>Done</th>
-          </tr></thead>
-          <tbody>
-           {session.exercises.map(e=>{
-            const last=lastWeightFor(gym,e.id,today);
-            return <tr key={e.id}>
-             <td style={{fontWeight:500}}>{e.name}</td>
-             <td className="num">{e.sets}&times;{e.reps}</td>
-             <td className="num">{e.weight?`${e.weight} kg`:'—'}</td>
-             <td className="num muted">{last===null?'—':`${last} kg`}</td>
-             <td style={{textAlign:'right'}}>
-              <input type="checkbox" aria-label={`${e.name} done`} checked={done.includes(e.id)} disabled={busy}
-               onChange={()=>change('',s=>{if(s.gym)toggleExercise(s.gym,today,e.id);})}/>
-             </td>
-            </tr>;
-           })}
-          </tbody>
-         </table>
-        </div>}
+       : <Timeline lead={34}>
+         {session.exercises.map((e,index)=>{
+          const last=lastWeightFor(gym,e.id,today);
+          const ticked=done.includes(e.id);
+          return <TimelineRow
+           key={e.id}
+           tone={ticked?'done':'plain'}
+           lead={String(index+1).padStart(2,'0')}
+           marker={ticked?<Check size={12}/>:null}
+           title={e.name}
+           meta={<>
+            {e.sets}&times;{e.reps}
+            {e.weight?` · ${e.weight} kg`:''}
+            {last===null?'':` · last ${last} kg`}
+           </>}
+           trailing={<input type="checkbox" aria-label={`${e.name} done`} checked={ticked} disabled={busy}
+            onChange={()=>change('',s=>{if(s.gym)toggleExercise(s.gym,today,e.id);})}/>}
+          />;
+         })}
+        </Timeline>}
     </Card>
 
     {session&&<Card title="Session note">
@@ -123,13 +121,17 @@ export default function GymSection({state,today,busy,change,go,notify}:SectionPr
     </Card>
 
     <Card eyebrow="Personal bests" action={<Trophy size={18} style={{color:'var(--ink-mute)'}}/>}>
-     {gym.bests.length===0?<Empty>No bests recorded yet.</Empty>:<div className="stack" style={{gap:11}}>
-      {[...gym.bests].sort((a,b)=>b.weight-a.weight).map((b,i)=>
-       <div key={b.id} className="spread" style={{alignItems:'baseline',borderTop:i?'1px solid var(--line)':'0',paddingTop:i?11:0}}>
-        <span style={{minWidth:0}}>{b.name}<br/><span className="tiny">{shortDate(b.date)}</span></span>
-        <strong className="num">{b.weight} kg</strong>
-       </div>)}
-     </div>}
+     {gym.bests.length===0?<Empty>No bests recorded yet.</Empty>:<Timeline lead={52}>
+      {[...gym.bests].sort((a,b)=>b.weight-a.weight).map(b=>
+       <TimelineRow
+        key={b.id}
+        tone="active"
+        lead={<><strong>{b.weight}</strong>kg</>}
+        marker={<Trophy size={11}/>}
+        title={b.name}
+        meta={shortDate(b.date)}
+       />)}
+     </Timeline>}
      <form className="stack" style={{gap:9,marginTop:16,paddingTop:14,borderTop:'1px solid var(--line)'}} onSubmit={e=>{
       e.preventDefault();
       const weight=Number(best.weight);
@@ -171,25 +173,32 @@ export default function GymSection({state,today,busy,change,go,notify}:SectionPr
    title={current?current.name:'Your split'}
    description={current?'Exercises run in this order during the session.':'Create a session for each training day, then add its exercises.'}>
    {!current?<>
-    <div className="list" style={{marginBottom:16}}>
-     {gym.sessions.length===0?<Empty>No sessions yet.</Empty>:gym.sessions.map(s=><div key={s.id} className="list-row">
-      <button type="button" className="grow" style={{textAlign:'left',background:'none',border:0,cursor:'pointer',font:'inherit',color:'inherit'}} onClick={()=>setOpenSession(s.id)}>
-       <strong style={{fontWeight:500}}>{s.name}</strong><br/><span className="tiny">{s.exercises.length} exercises</span>
-      </button>
-      <div className="row-actions" style={{opacity:1}}>
-       <button type="button" className="btn-icon" aria-label={`Edit ${s.name}`} onClick={()=>setOpenSession(s.id)}><Pencil size={16}/></button>
-       <ConfirmButton label={`Delete ${s.name}`} confirmLabel="Delete" disabled={busy}
-        onConfirm={()=>change(`Deleted gym session: ${s.name}`,next=>{
-         if(!next.gym)return;
-         next.gym.sessions=next.gym.sessions.filter(x=>x.id!==s.id);
-         next.gym.week=next.gym.week.map(id=>id===s.id?null:id);
-        })}>
-        <Trash2 size={16}/>
-       </ConfirmButton>
-      </div>
-     </div>)}
-    </div>
-    <form className="entry" onSubmit={e=>{
+    {gym.sessions.length===0
+     ? <Empty>No sessions yet.</Empty>
+     : <Timeline lead={34}>
+       {gym.sessions.map((s,index)=><TimelineRow
+        key={s.id}
+        tone={s.exercises.length?'active':'plain'}
+        lead={String(index+1).padStart(2,'0')}
+        marker={s.exercises.length?<Dot size={11}/>:null}
+        title={s.name}
+        meta={s.exercises.length===1?'1 exercise':`${s.exercises.length} exercises`}
+        openLabel={`Open ${s.name}`}
+        onOpen={()=>setOpenSession(s.id)}
+        trailing={<>
+         <button type="button" className="btn-icon" aria-label={`Edit ${s.name}`} onClick={()=>setOpenSession(s.id)}><Pencil size={16}/></button>
+         <ConfirmButton label={`Delete ${s.name}`} confirmLabel="Delete" disabled={busy}
+          onConfirm={()=>change(`Deleted gym session: ${s.name}`,next=>{
+           if(!next.gym)return;
+           next.gym.sessions=next.gym.sessions.filter(x=>x.id!==s.id);
+           next.gym.week=next.gym.week.map(id=>id===s.id?null:id);
+          })}>
+          <Trash2 size={16}/>
+         </ConfirmButton>
+        </>}
+       />)}
+      </Timeline>}
+    <form className="entry" style={{marginTop:16}} onSubmit={e=>{
      e.preventDefault();
      const name=sessionName.trim();
      if(!name)return;
@@ -204,27 +213,25 @@ export default function GymSection({state,today,busy,change,go,notify}:SectionPr
     </form>
    </>:<>
     <button type="button" className="back-link" onClick={()=>setOpenSession(null)}>All sessions</button>
-    <div className="scroll-x" style={{marginBottom:16}}>
-     <table className="table">
-      <thead><tr><th>Exercise</th><th style={{width:70}}>Sets</th><th style={{width:70}}>Reps</th><th style={{width:90}}>Weight</th><th style={{width:46}}/></tr></thead>
-      <tbody>
-       {current.exercises.length===0?<tr><td colSpan={5}><Empty>No exercises yet.</Empty></td></tr>:current.exercises.map(e=><tr key={e.id}>
-        <td style={{fontWeight:500}}>{e.name}</td>
-        <td className="num">{e.sets}</td>
-        <td className="num">{e.reps}</td>
-        <td className="num">{e.weight?`${e.weight} kg`:'—'}</td>
-        <td style={{textAlign:'right'}}>
-         <ConfirmButton label={`Delete ${e.name}`} confirmLabel="Delete" disabled={busy}
+    <div style={{marginBottom:18}}>
+     {current.exercises.length===0
+      ? <Empty>No exercises yet.</Empty>
+      : <Timeline lead={34}>
+        {current.exercises.map((e,index)=><TimelineRow
+         key={e.id}
+         lead={String(index+1).padStart(2,'0')}
+         marker={<Dot size={11}/>}
+         title={e.name}
+         meta={<>{e.sets}&times;{e.reps}{e.weight?` · ${e.weight} kg`:''}</>}
+         trailing={<ConfirmButton label={`Delete ${e.name}`} confirmLabel="Delete" disabled={busy}
           onConfirm={()=>change(`Removed ${e.name} from ${current.name}`,next=>{
            const target=next.gym?.sessions.find(s=>s.id===current.id);
            if(target)target.exercises=target.exercises.filter(x=>x.id!==e.id);
           })}>
           <Trash2 size={16}/>
-         </ConfirmButton>
-        </td>
-       </tr>)}
-      </tbody>
-     </table>
+         </ConfirmButton>}
+        />)}
+       </Timeline>}
     </div>
     <form className="stack" style={{gap:10}} onSubmit={e=>{
      e.preventDefault();

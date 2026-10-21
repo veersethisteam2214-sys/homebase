@@ -4,7 +4,7 @@ import {useEffect,useRef,useState} from 'react';
 import {Check,ExternalLink,Send,Trash2} from 'lucide-react';
 import type {Video} from '../../../lib/life';
 import type {SectionProps} from '../types';
-import {Card,ConfirmButton,Empty,PageHead,Stat} from '../ui';
+import {Card,ConfirmButton,Empty,PageHead,Stat,Timeline,TimelineRow} from '../ui';
 
 type Message={id:string;from:'you'|'app'|'error';text:string};
 
@@ -79,43 +79,45 @@ export default function WatchLaterSection({state,busy,change,go}:SectionProps){
    </div>
   </Card>
 
-  {videos.length===0
-   ? <Card><Empty>Nothing saved yet. Paste your first link above.</Empty></Card>
-   : <div className="videos">
-     {videos.map(video=><article key={video.id} className="video">
-      <a href={video.url} target="_blank" rel="noopener noreferrer" aria-label={`Watch ${video.title||'this video'} on YouTube`}>
-       <img src={thumb(video.videoId)} alt="" loading="lazy" width={320} height={180}/>
-      </a>
-      <div className="video-body">
-       {video.title
-        ? <h3>{video.title}</h3>
+  <Card tone="lift" title="Your list" action={<span className="tiny">Newest first</span>}>
+   {videos.length===0
+    ? <Empty>Nothing saved yet. Paste your first link above.</Empty>
+    : <Timeline lead={108}>
+      {videos.map(video=><TimelineRow
+       key={video.id}
+       tone={video.watched?'done':'plain'}
+       lead={<a href={video.url} target="_blank" rel="noopener noreferrer" aria-label={`Watch ${video.title||'this video'} on YouTube`}>
+        <img className="tl-thumb" src={thumb(video.videoId)} alt="" loading="lazy" width={320} height={180}/>
+       </a>}
+       marker={video.watched?<Check size={12}/>:null}
+       title={video.title
+        ? video.title
         : <>
           <label className="sr-only" htmlFor={`name-${video.id}`}>Name this video</label>
-          <input id={`name-${video.id}`} placeholder="Name this video" maxLength={300} disabled={busy}
+          <input id={`name-${video.id}`} className="tl-edit" placeholder="Name this video" maxLength={300} disabled={busy}
            onBlur={e=>{
             const title=e.target.value.trim();
             if(!title)return;
             change(`Named a saved video: ${title}`,s=>{const target=s.videos?.find(v=>v.id===video.id);if(target)target.title=title;});
            }}/>
          </>}
-       <span className="tiny">{video.author||'Unknown channel'} &middot; {stamp(video.addedAt)}</span>
-       <div className="video-foot">
+       meta={<>{video.author||'Unknown channel'} &middot; {stamp(video.addedAt)}</>}
+       trailing={<>
         <button type="button" className={video.watched?'btn btn-sm btn-soft':'btn btn-sm btn-ghost'} disabled={busy}
          onClick={()=>change('',s=>{const target=s.videos?.find(v=>v.id===video.id);if(target)target.watched=!target.watched;})}>
          <Check size={15}/>{video.watched?'Watched':'Mark watched'}
         </button>
-        <div className="row" style={{gap:2}}>
-         <a className="btn-icon" href={video.url} target="_blank" rel="noopener noreferrer" aria-label="Open on YouTube" style={{display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
-          <ExternalLink size={15}/>
-         </a>
-         <ConfirmButton label="Remove video" confirmLabel="Remove" disabled={busy}
-          onConfirm={()=>change(`Removed a saved video${video.title?`: ${video.title}`:''}`,s=>{s.videos=(s.videos??[]).filter(v=>v.id!==video.id);})}>
-          <Trash2 size={15}/>
-         </ConfirmButton>
-        </div>
-       </div>
-      </div>
-     </article>)}
-    </div>}
+        <a className="btn-icon" href={video.url} target="_blank" rel="noopener noreferrer" aria-label="Open on YouTube"
+         style={{display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
+         <ExternalLink size={15}/>
+        </a>
+        <ConfirmButton label="Remove video" confirmLabel="Remove" disabled={busy}
+         onConfirm={()=>change(`Removed a saved video${video.title?`: ${video.title}`:''}`,s=>{s.videos=(s.videos??[]).filter(v=>v.id!==video.id);})}>
+         <Trash2 size={15}/>
+        </ConfirmButton>
+       </>}
+      />)}
+     </Timeline>}
+  </Card>
  </div>;
 }
