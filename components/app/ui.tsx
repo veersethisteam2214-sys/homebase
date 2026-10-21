@@ -24,14 +24,25 @@ type ModalProps={open:boolean;onClose?:()=>void;title?:string;description?:strin
 
 export function Modal({open,onClose,title,description,wide,dismissible=true,children}:ModalProps){
  const panel=useRef<HTMLDivElement>(null);
+
+ // Opening the dialog moves focus into it, and locks the page behind it. This is keyed on
+ // `open` alone: callers pass onClose as an inline arrow, so it changes identity on every
+ // render, and anything that re-focuses the panel on that would steal focus from whatever
+ // the user is typing in — one character per click.
  useEffect(()=>{
   if(!open)return;
-  const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape'&&dismissible)onClose?.();};
-  document.addEventListener('keydown',onKey);
   const previous=document.body.style.overflow;
   document.body.style.overflow='hidden';
   panel.current?.focus();
-  return()=>{document.removeEventListener('keydown',onKey);document.body.style.overflow=previous;};
+  return()=>{document.body.style.overflow=previous;};
+ },[open]);
+
+ // Re-subscribing this one as onClose changes is harmless: it touches nothing on screen.
+ useEffect(()=>{
+  if(!open||!dismissible)return;
+  const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose?.();};
+  document.addEventListener('keydown',onKey);
+  return()=>document.removeEventListener('keydown',onKey);
  },[open,onClose,dismissible]);
  if(!open)return null;
  return <div className="backdrop" onMouseDown={e=>{if(dismissible&&e.target===e.currentTarget)onClose?.();}}>
