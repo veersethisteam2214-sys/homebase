@@ -42,4 +42,25 @@ const single=await import('../.sites-runtime/owner-single.mjs');
 assert.equal(await single.owner(anonymous()),'primary');
 assert.equal(await single.owner(identity('anyone@example.test')),'primary');
 
-console.log('Passed: bridge authentication, invalid-owner rejection, preserved existing data, concurrent update conflict, hosted owner allowlist, single-user host.');
+// pg parses the connection string over the top of explicit options, so an sslmode left
+// in the string silently wins and managed providers fail with a certificate error.
+await build({entryPoints:['lib/pg-connection.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/postgres-test.mjs'});
+const {pgConnection}=await import('../.sites-runtime/postgres-test.mjs');
+const base='postgresql://postgres.abc:p%40ss%2Bword@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres';
+
+const required=pgConnection(base+'?sslmode=require');
+assert.equal(required.connectionString,base,'sslmode must leave the string entirely');
+assert.deepEqual(required.ssl,{rejectUnauthorized:false});
+
+assert.equal(pgConnection(base+'?sslmode=require&pgbouncer=true').connectionString,base+'?pgbouncer=true');
+assert.equal(pgConnection(base+'?pgbouncer=true&sslmode=require').connectionString,base+'?pgbouncer=true');
+assert.deepEqual(pgConnection(base+'?sslmode=verify-full').ssl,{rejectUnauthorized:true});
+assert.equal(pgConnection(base+'?sslmode=disable').ssl,false);
+
+const plain=pgConnection(base);
+assert.equal(plain.connectionString,base,'a string without sslmode is left untouched');
+assert.deepEqual(plain.ssl,{rejectUnauthorized:false});
+// The credentials must survive verbatim; re-encoding them breaks authentication.
+assert.ok(required.connectionString.includes('p%40ss%2Bword'));
+
+console.log('Passed: bridge authentication, invalid-owner rejection, preserved existing data, concurrent update conflict, hosted owner allowlist, single-user host, Postgres SSL mode handling.');
