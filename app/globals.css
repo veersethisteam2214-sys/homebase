@@ -620,3 +620,10 @@ input[type=range]{accent-color:var(--accent)}
  border:1px solid rgba(255,255,255,.22);box-shadow:0 0 22px color-mix(in srgb,var(--accent) 55%,transparent);
 }
 @media (prefers-reduced-motion:reduce){.swatch{transition:none}}
+
+/* ---------- routine step times ---------- */
+.routine-time{
+ flex:none;font-size:12px;font-variant-numeric:tabular-nums;letter-spacing:.04em;
+ color:var(--ink-soft);background:var(--surface-mute);border-radius:6px;padding:3px 8px;
+}
+.list-row.done .routine-time{color:var(--ink-mute);text-decoration:none}

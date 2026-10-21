@@ -42,7 +42,8 @@ function routineAnswer(state:State,today:string){
  const checked=state.checks[today]??[];
  const left=steps.filter(s=>!checked.includes(s.id));
  if(!left.length)return `Morning routine complete, all ${steps.length} steps.`;
- return `${checked.length} of ${steps.length} done. Still to do:\n`+bullet(left.slice(0,8).map(s=>s.title))+(left.length>8?`\n· and ${left.length-8} more`:'');
+ const line=(s:{title:string;time?:string})=>s.time?`${s.time}  ${s.title}`:s.title;
+ return `${checked.length} of ${steps.length} done. Still to do:\n`+bullet(left.slice(0,8).map(line))+(left.length>8?`\n· and ${left.length-8} more`:'');
 }
 
 function gymAnswer(state:State,today:string){
